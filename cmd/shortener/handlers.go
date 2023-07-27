@@ -60,11 +60,11 @@ func handleGetOriginalURLByID(urlShortener URLShortenerService) http.HandlerFunc
 		if err != nil {
 			http.Error(w, "id not found", http.StatusBadRequest)
 		}
-		originalUrl := url.OriginalURL
-		if strings.HasPrefix(originalUrl, "http") == false {
-			originalUrl = "https://" + originalUrl
+		originalURL := url.OriginalURL
+		if !strings.HasPrefix(originalURL, "http") {
+			originalURL = "https://" + originalURL
 		}
-		w.Header().Set("Location", originalUrl)
+		w.Header().Set("Location", originalURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	}
 }

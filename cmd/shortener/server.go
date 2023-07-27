@@ -12,12 +12,12 @@ type URLShortenerService interface {
 }
 
 type Server struct {
-	UrlShortener URLShortenerService
+	URLShortener URLShortenerService
 }
 
 func NewServer(urlShortener URLShortenerService) *Server {
 	return &Server{
-		UrlShortener: urlShortener,
+		URLShortener: urlShortener,
 	}
 }
 
@@ -26,10 +26,10 @@ func (s Server) Run() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			f := handleGetOriginalURLByID(s.UrlShortener)
+			f := handleGetOriginalURLByID(s.URLShortener)
 			f(w, r)
 		} else if r.Method == http.MethodPost {
-			f := handleCreateShortURL(s.UrlShortener)
+			f := handleCreateShortURL(s.URLShortener)
 			f(w, r)
 		}
 	})
