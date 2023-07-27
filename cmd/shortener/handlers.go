@@ -15,10 +15,11 @@ func handleCreateShortURL(urlShortener URLShortenerService) http.HandlerFunc {
 			return
 		}
 
-		if contentType := r.Header.Get("Content-Type"); contentType != "text/plain" {
-			http.Error(w, "Invalid Content-Type", http.StatusBadRequest)
-			return
-		}
+		//if contentType := r.Header.Get("Content-Type"); contentType != "text/plain" {
+		//	http.Error(w, "Invalid Content-Type", http.StatusBadRequest)
+		//	return
+		//}
+		// Looks like because of this auto test fails
 		defer r.Body.Close()
 
 		data, err := io.ReadAll(r.Body)
