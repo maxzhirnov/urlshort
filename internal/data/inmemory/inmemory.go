@@ -7,26 +7,26 @@ import (
 )
 
 type Store struct {
-	urls map[string]models.URL
+	urls *SafeMap
 }
 
-func NewInMemoryStore(urls map[string]models.URL) *Store {
+func NewInMemoryStore(m *SafeMap) *Store {
 	return &Store{
-		urls: urls,
+		urls: m,
 	}
 }
 
 func (s *Store) Save(url models.URL) error {
-	if _, ok := s.urls[url.ID]; ok {
+	if _, ok := s.urls.Load(url.ID); ok {
 		return fmt.Errorf("id: %s already presented", url.ID)
 	}
 
-	s.urls[url.ID] = url
+	s.urls.Store(url)
 	return nil
 }
 
 func (s *Store) Get(id string) (models.URL, error) {
-	url, ok := s.urls[id]
+	url, ok := s.urls.Load(id)
 	if !ok {
 		return models.URL{}, errors.New("id not found")
 	}
