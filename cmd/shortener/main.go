@@ -6,9 +6,8 @@ import (
 )
 
 func main() {
-	//urlData := make(map[string]models.URL) // переделать в thread safe
-	m := data.NewSafeMap()
-	store := data.NewInMemoryStore(m)
+	safeMap := data.NewSafeMap()
+	store := data.NewInMemoryStore(safeMap)
 	urlShortener := app.NewURLShortener(store)
 	server := NewServer(urlShortener)
 	if err := server.Run(); err != nil {

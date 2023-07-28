@@ -8,7 +8,7 @@ import (
 
 type StoreService interface {
 	Save(url models.URL) error
-	Get(string) (models.URL, error)
+	Get(id string) (models.URL, error)
 }
 
 type URLShortener struct {

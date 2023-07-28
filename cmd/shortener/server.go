@@ -25,12 +25,14 @@ func (s Server) Run() error {
 	log.Println("Starting server...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		//Разводим по методы тут, чтобы в хендлерах не пришлось объединять 2 хендлера в один
+		//В дальнейшем с gin по идее можно будет сделать элегантнее
 		if r.Method == http.MethodGet {
-			f := handleGetOriginalURLByID(s.URLShortener)
-			f(w, r)
+			h := handleGetOriginalURLByID(s.URLShortener)
+			h(w, r)
 		} else if r.Method == http.MethodPost {
-			f := handleCreateShortURL(s.URLShortener)
-			f(w, r)
+			h := handleCreateShortURL(s.URLShortener)
+			h(w, r)
 		}
 	})
 

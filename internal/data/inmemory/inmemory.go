@@ -17,6 +17,7 @@ func NewInMemoryStore(m *SafeMap) *Store {
 }
 
 func (s *Store) Save(url models.URL) error {
+	// check if url with this id already exists
 	if _, ok := s.urls.Load(url.ID); ok {
 		return fmt.Errorf("id: %s already presented", url.ID)
 	}
