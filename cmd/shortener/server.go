@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/maxzhirnov/urlshort/internal/models"
 	"log"
-	"net/http"
 )
 
 type URLShortenerService interface {
@@ -23,22 +23,12 @@ func NewServer(urlShortener URLShortenerService) *Server {
 
 func (s Server) Run() error {
 	log.Println("Starting server...")
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		//Разводим по методы тут, чтобы в хендлерах не пришлось объединять 2 хендлера в один
-		//В дальнейшем с gin по идее можно будет сделать элегантнее
-		if r.Method == http.MethodGet {
-			h := handleGetOriginalURLByID(s.URLShortener)
-			h(w, r)
-		} else if r.Method == http.MethodPost {
-			h := handleCreateShortURL(s.URLShortener)
-			h(w, r)
-		}
-	})
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		return err
+	r := gin.Default()
+	r.GET("/:ID", handleRedirectToOriginal(s.URLShortener))
+	r.POST("/", handleCreate(s.URLShortener))
+	if err := r.Run(":8080"); err != nil {
+		panic(err)
 	}
-
 	return nil
 }

@@ -2,71 +2,71 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/maxzhirnov/urlshort/internal/app"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
 
-func handleCreateShortURL(urlShortener URLShortenerService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Only POST requests allowed", http.StatusBadRequest)
+func handleCreate(urlShortener URLShortenerService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method != http.MethodPost {
+			c.String(http.StatusBadRequest, "only POST requests allowed")
 			return
 		}
 
-		//if contentType := r.Header.Get("Content-Type"); contentType != "text/plain" {
-		//	http.Error(w, "Invalid Content-Type", http.StatusBadRequest)
-		//	return
-		//}
-		// Looks like because of this auto test fails
-		defer r.Body.Close()
+		defer c.Request.Body.Close()
 
-		data, err := io.ReadAll(r.Body)
+		data, err := io.ReadAll(c.Request.Body)
 		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, "Error reading request body")
 			return
 		}
 
-		url := string(data)
-		log.Println("Received url:", url)
+		isValid, url := app.CheckURL(string(data))
+		if !isValid {
+			//TODO: write test on that case
+			c.String(http.StatusBadRequest, "provided data is not an URL")
+		}
 
 		p := "http://" //TODO: Implement protocol parsing and mapping to string
-		h := r.Host
+		h := c.Request.Host
 		id, err := urlShortener.Create(url)
 		if err != nil {
-			http.Error(w, "Error creating shorten url", http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, "error creating shorten url")
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
+		c.Writer.Header().Set("Content-Type", "text/plain")
+		c.Writer.WriteHeader(http.StatusCreated)
 		shortenURL := fmt.Sprintf("%s%s/%s", p, h, id)
 
-		if _, err := w.Write([]byte(shortenURL)); err != nil {
-			http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		if _, err := c.Writer.Write([]byte(shortenURL)); err != nil {
+			c.String(http.StatusInternalServerError, "something went wrong")
 			return
 		}
 	}
 }
 
-func handleGetOriginalURLByID(urlShortener URLShortenerService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Only GET requests allowed", http.StatusBadRequest)
+func handleRedirectToOriginal(urlShortener URLShortenerService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method != http.MethodGet {
+			c.String(http.StatusBadRequest, "only GET requests allowed")
 			return
 		}
-		parts := strings.Split(r.URL.Path, "/")
-		id := parts[1]
+
+		id := c.Param("ID")
 		url, err := urlShortener.Get(id)
 		if err != nil {
-			http.Error(w, "id not found", http.StatusNotFound)
+			c.String(http.StatusNotFound, "id not found")
 			return
 		}
+
 		originalURL := url.OriginalURL
 		if !strings.HasPrefix(originalURL, "http") {
 			originalURL = "https://" + originalURL
 		}
-		w.Header().Set("Location", originalURL)
-		w.WriteHeader(http.StatusTemporaryRedirect)
+
+		c.Redirect(http.StatusTemporaryRedirect, originalURL)
 	}
 }

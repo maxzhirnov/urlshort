@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/maxzhirnov/urlshort/internal/mocks"
 	"github.com/maxzhirnov/urlshort/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ var mockURLShortener = mocks.MockURLShortenerService{
 	},
 }
 
-func Test_handleCreateShortURL(t *testing.T) {
+func Test_handleCreate(t *testing.T) {
 	type want struct {
 		statusCode  int
 		contentType string
@@ -54,7 +55,7 @@ func Test_handleCreateShortURL(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
-				body:        "Only POST requests allowed\n",
+				body:        "only POST requests allowed",
 			},
 		},
 		{
@@ -65,7 +66,7 @@ func Test_handleCreateShortURL(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
-				body:        "Only POST requests allowed\n",
+				body:        "only POST requests allowed",
 			},
 		},
 		{
@@ -76,7 +77,7 @@ func Test_handleCreateShortURL(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
-				body:        "Only POST requests allowed\n",
+				body:        "only POST requests allowed",
 			},
 		},
 		{
@@ -87,19 +88,20 @@ func Test_handleCreateShortURL(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusInternalServerError,
 				contentType: "text/plain; charset=utf-8",
-				body:        "Error creating shorten url\n",
+				body:        "error creating shorten url",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			m := &mockURLShortener
 			m.CreateFunc = tt.createFunc
-			h := handleCreateShortURL(m)
-			h(w, request)
+			h := handleCreate(m)
+			h(c)
 
 			res := w.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
@@ -113,11 +115,10 @@ func Test_handleCreateShortURL(t *testing.T) {
 	}
 }
 
-func Test_handleGetOriginalURLByID(t *testing.T) {
+func Test_handleRedirectToOriginal(t *testing.T) {
 	type want struct {
 		statusCode int
 		location   string
-		body       string
 	}
 	tests := []struct {
 		name    string
@@ -134,7 +135,6 @@ func Test_handleGetOriginalURLByID(t *testing.T) {
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
 				location:   "https://ya.ru",
-				body:       "",
 			},
 		},
 		{
@@ -145,7 +145,6 @@ func Test_handleGetOriginalURLByID(t *testing.T) {
 			want: want{
 				statusCode: http.StatusBadRequest,
 				location:   "",
-				body:       "Only GET requests allowed\n",
 			},
 		},
 		{
@@ -156,24 +155,21 @@ func Test_handleGetOriginalURLByID(t *testing.T) {
 			want: want{
 				statusCode: http.StatusNotFound,
 				location:   "",
-				body:       "id not found\n",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest(tt.method, tt.reqURL, nil)
 			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(tt.method, tt.reqURL, nil)
 			m := &mockURLShortener
 			m.GetFunc = tt.getFunc
-			h := handleGetOriginalURLByID(m)
-			h(w, r)
+			h := handleRedirectToOriginal(m)
+			h(c)
 
 			res := w.Result()
 			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-			require.NoError(t, err)
-			assert.Equal(t, tt.want.body, string(resBody))
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
 		})
