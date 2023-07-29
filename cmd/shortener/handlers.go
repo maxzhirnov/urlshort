@@ -31,19 +31,20 @@ func handleCreateShortURL(urlShortener URLShortenerService) http.HandlerFunc {
 		url := string(data)
 		log.Println("Received url:", url)
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
-
 		p := "http://" //TODO: Implement protocol parsing and mapping to string
 		h := r.Host
 		id, err := urlShortener.Create(url)
 		if err != nil {
 			http.Error(w, "Error creating shorten url", http.StatusInternalServerError)
+			return
 		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusCreated)
 		shortenURL := fmt.Sprintf("%s%s/%s", p, h, id)
 
 		if _, err := w.Write([]byte(shortenURL)); err != nil {
 			http.Error(w, "Something went wrong", http.StatusInternalServerError)
+			return
 		}
 	}
 }
@@ -58,7 +59,8 @@ func handleGetOriginalURLByID(urlShortener URLShortenerService) http.HandlerFunc
 		id := parts[1]
 		url, err := urlShortener.Get(id)
 		if err != nil {
-			http.Error(w, "id not found", http.StatusBadRequest)
+			http.Error(w, "id not found", http.StatusNotFound)
+			return
 		}
 		originalURL := url.OriginalURL
 		if !strings.HasPrefix(originalURL, "http") {
