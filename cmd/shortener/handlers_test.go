@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-var mockUrlShortener = mocks.MockURLShortenerService{
+var mockURLShortener = mocks.MockURLShortenerService{
 	CreateFunc: func(originalURL string) (id string, err error) {
 		return "", nil
 	},
@@ -96,7 +96,7 @@ func Test_handleCreateShortURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			w := httptest.NewRecorder()
-			m := &mockUrlShortener
+			m := &mockURLShortener
 			m.CreateFunc = tt.createFunc
 			h := handleCreateShortURL(m)
 			h(w, request)
@@ -164,7 +164,7 @@ func Test_handleGetOriginalURLByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := httptest.NewRequest(tt.method, tt.reqURL, nil)
 			w := httptest.NewRecorder()
-			m := &mockUrlShortener
+			m := &mockURLShortener
 			m.GetFunc = tt.getFunc
 			h := handleGetOriginalURLByID(m)
 			h(w, r)
