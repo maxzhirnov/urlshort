@@ -30,28 +30,67 @@ func Test_handleCreate(t *testing.T) {
 		body        string
 	}
 	tests := []struct {
-		name       string
-		method     string
-		url        string
-		createFunc func(string) (string, error)
-		want       want
+		name         string
+		method       string
+		url          string
+		redirectHost string
+		createFunc   func(string) (string, error)
+		want         want
 	}{
 		{
-			name:       "test success",
-			method:     http.MethodPost,
-			url:        "https://newsite.com",
-			createFunc: func(s string) (string, error) { return "12345678", nil },
+			name:         "test success without protocol",
+			method:       http.MethodPost,
+			url:          "newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusCreated,
 				contentType: "text/plain",
-				body:        "http://example.com/12345678",
+				body:        "https://example.com/12345678",
 			},
 		},
 		{
-			name:       "test method GET",
-			method:     http.MethodGet,
-			url:        "https://newsite.com",
-			createFunc: func(s string) (string, error) { return "12345678", nil },
+			name:         "test success with protocol http",
+			method:       http.MethodPost,
+			url:          "http://newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
+			want: want{
+				statusCode:  http.StatusCreated,
+				contentType: "text/plain",
+				body:        "https://example.com/12345678",
+			},
+		},
+		{
+			name:         "test localhost:8080",
+			method:       http.MethodPost,
+			url:          "http://newsite.com",
+			redirectHost: "localhost:8080",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
+			want: want{
+				statusCode:  http.StatusCreated,
+				contentType: "text/plain",
+				body:        "localhost:8080/12345678",
+			},
+		},
+		{
+			name:         "test success with protocol https",
+			method:       http.MethodPost,
+			url:          "http://newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
+			want: want{
+				statusCode:  http.StatusCreated,
+				contentType: "text/plain",
+				body:        "https://example.com/12345678",
+			},
+		},
+		{
+			name:         "test method GET",
+			method:       http.MethodGet,
+			url:          "https://newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
@@ -59,10 +98,11 @@ func Test_handleCreate(t *testing.T) {
 			},
 		},
 		{
-			name:       "test method GET",
-			method:     http.MethodGet,
-			url:        "https://newsite.com",
-			createFunc: func(s string) (string, error) { return "12345678", nil },
+			name:         "test method GET",
+			method:       http.MethodGet,
+			url:          "https://newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
@@ -70,10 +110,11 @@ func Test_handleCreate(t *testing.T) {
 			},
 		},
 		{
-			name:       "test method DELETE",
-			method:     http.MethodDelete,
-			url:        "https://newsite.com",
-			createFunc: func(s string) (string, error) { return "12345678", nil },
+			name:         "test method DELETE",
+			method:       http.MethodDelete,
+			url:          "https://newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
@@ -81,10 +122,11 @@ func Test_handleCreate(t *testing.T) {
 			},
 		},
 		{
-			name:       "test error",
-			method:     http.MethodPost,
-			url:        "https://newsite.com",
-			createFunc: func(s string) (string, error) { return "", errors.New("error occurred") },
+			name:         "test error",
+			method:       http.MethodPost,
+			url:          "https://newsite.com",
+			redirectHost: "https://example.com",
+			createFunc:   func(s string) (string, error) { return "", errors.New("error occurred") },
 			want: want{
 				statusCode:  http.StatusInternalServerError,
 				contentType: "text/plain; charset=utf-8",
@@ -100,7 +142,7 @@ func Test_handleCreate(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			m := &mockURLShortener
 			m.CreateFunc = tt.createFunc
-			h := handleCreate(m)
+			h := handleCreate(m, tt.redirectHost)
 			h(c)
 
 			res := w.Result()

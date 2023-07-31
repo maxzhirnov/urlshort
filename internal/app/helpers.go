@@ -29,15 +29,19 @@ func generateID(length int) string {
 
 // CheckURL verifies if the provided string is a valid URL.
 // If valid, it returns true and the possibly modified URL string.
-func CheckURL(s string) (bool, string) {
-	if !strings.HasPrefix(s, "http://") && !strings.HasPrefix(s, "https://") {
+func CheckURL(s string) (urlWithoutProtocol string, isValid bool) {
+	if s == "localhost" || s == "http://localhost" || s == "https://localhost" {
+		return "localhost", true
+	}
+
+	if !strings.HasPrefix(s, "http") {
 		s = "http://" + s
 	}
 
 	u, err := url.ParseRequestURI(s)
 	if err != nil || !strings.Contains(u.Host, ".") {
-		return false, ""
+		return "", false
 	}
 
-	return true, s
+	return u.Host, true
 }

@@ -77,7 +77,7 @@ func Test_CheckURL(t *testing.T) {
 			input: "https://ya.ru",
 			want: want{
 				IsValid: true,
-				URL:     "https://ya.ru",
+				URL:     "ya.ru",
 			},
 		},
 		{
@@ -85,7 +85,7 @@ func Test_CheckURL(t *testing.T) {
 			input: "http://ya.ru",
 			want: want{
 				IsValid: true,
-				URL:     "http://ya.ru",
+				URL:     "ya.ru",
 			},
 		},
 		{
@@ -93,22 +93,30 @@ func Test_CheckURL(t *testing.T) {
 			input: "ya.ru",
 			want: want{
 				IsValid: true,
-				URL:     "http://ya.ru",
+				URL:     "ya.ru",
 			},
 		},
 		{
-			name:  "test not url",
+			name:  "test url without dot",
 			input: "yary",
 			want: want{
 				IsValid: false,
 				URL:     "",
 			},
 		},
+		{
+			name:  "test localhost",
+			input: "localhost",
+			want: want{
+				IsValid: true,
+				URL:     "localhost",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isValid, url := CheckURL(tt.input)
+			url, isValid := CheckURL(tt.input)
 			assert.Equal(t, tt.want.URL, url)
 			assert.Equal(t, tt.want.IsValid, isValid)
 		})
