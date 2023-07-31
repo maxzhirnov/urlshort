@@ -41,11 +41,11 @@ func (c *Config) Parse() {
 		c.BaseURL = "http://" + c.ServerAddr
 	}
 
-	if s, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
-		c.ServerAddr = s
+	if v, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
+		c.ServerAddr = v
 	}
 
-	if s, ok := os.LookupEnv("BASE_URL"); ok {
-		c.BaseURL = s
+	if v, ok := os.LookupEnv("BASE_URL"); ok {
+		c.BaseURL = v
 	}
 }
