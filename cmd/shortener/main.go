@@ -9,7 +9,6 @@ import (
 func main() {
 	cfg := config.NewDefaultConfig()
 	cfg.ParseFlags()
-	cfg.RedirectURLProtocol = config.HTTP
 
 	safeMap := data.NewSafeMap()
 	storeService := data.NewInMemoryStore(safeMap)

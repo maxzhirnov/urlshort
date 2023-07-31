@@ -23,6 +23,11 @@ func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.Han
 			return
 		}
 
+		if len(data) == 0 {
+			c.String(http.StatusBadRequest, "url shouldn't be empty")
+			return
+		}
+
 		originalHost := string(data)
 
 		id, err := urlShortener.Create(originalHost)
