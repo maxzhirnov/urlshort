@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.HandlerFunc {
+func handleCreate(urlShortener URLShortenerService, baseURL string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method != http.MethodPost {
 			c.String(http.StatusBadRequest, "only POST requests allowed")
@@ -36,7 +36,7 @@ func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.Han
 			return
 		}
 
-		shortenURL := fmt.Sprintf("%s/%s", redirectHost, id)
+		shortenURL := fmt.Sprintf("%s/%s", baseURL, id)
 
 		c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		c.Writer.WriteHeader(http.StatusCreated)

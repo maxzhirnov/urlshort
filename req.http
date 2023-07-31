@@ -1,7 +1,7 @@
-POST http://localhost:37977
+POST http://localhost:8081
 Content-Type: text/plain
 
-http://localhost:37977/vaE4wX7A
+ya.ru
 
 ###
-GET http://localhost:37977/6isk4Upv
+GET http://localhost:8081/gyg3Ce74

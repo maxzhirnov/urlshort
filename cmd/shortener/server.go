@@ -15,14 +15,14 @@ type URLShortenerService interface {
 type Server struct {
 	URLShortener URLShortenerService
 	ServerAddr   string
-	RedirectHost string
+	BaseURL      string
 }
 
 func NewServer(urlShortener URLShortenerService, cfg *config.Config) *Server {
 	return &Server{
 		URLShortener: urlShortener,
 		ServerAddr:   cfg.ServerAddr,
-		RedirectHost: cfg.RedirectHost,
+		BaseURL:      cfg.BaseURL,
 	}
 }
 
@@ -32,7 +32,7 @@ func (s Server) Run() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.GET("/:ID", handleRedirect(s.URLShortener))
-	r.POST("/", handleCreate(s.URLShortener, s.RedirectHost))
+	r.POST("/", handleCreate(s.URLShortener, s.BaseURL))
 
 	if err := r.Run(s.ServerAddr); err != nil {
 		panic(err)
