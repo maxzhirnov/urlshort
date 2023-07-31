@@ -45,7 +45,7 @@ func Test_handleCreate(t *testing.T) {
 			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusCreated,
-				contentType: "text/plain",
+				contentType: "text/plain; charset=utf-8",
 				body:        "https://example.com/12345678",
 			},
 		},
@@ -57,7 +57,7 @@ func Test_handleCreate(t *testing.T) {
 			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusCreated,
-				contentType: "text/plain",
+				contentType: "text/plain; charset=utf-8",
 				body:        "https://example.com/12345678",
 			},
 		},
@@ -69,7 +69,7 @@ func Test_handleCreate(t *testing.T) {
 			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusCreated,
-				contentType: "text/plain",
+				contentType: "text/plain; charset=utf-8",
 				body:        "localhost:8080/12345678",
 			},
 		},
@@ -81,7 +81,7 @@ func Test_handleCreate(t *testing.T) {
 			createFunc:   func(s string) (string, error) { return "12345678", nil },
 			want: want{
 				statusCode:  http.StatusCreated,
-				contentType: "text/plain",
+				contentType: "text/plain; charset=utf-8",
 				body:        "https://example.com/12345678",
 			},
 		},
@@ -157,7 +157,7 @@ func Test_handleCreate(t *testing.T) {
 	}
 }
 
-func Test_handleRedirectToOriginal(t *testing.T) {
+func Test_handleRedirect(t *testing.T) {
 	type want struct {
 		statusCode int
 		location   string
@@ -176,7 +176,7 @@ func Test_handleRedirectToOriginal(t *testing.T) {
 			getFunc: func(id string) (models.URL, error) { return models.URL{OriginalURL: "ya.ru", ID: "12345678"}, nil },
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				location:   "https://ya.ru",
+				location:   "http://ya.ru",
 			},
 		},
 		{
@@ -207,7 +207,7 @@ func Test_handleRedirectToOriginal(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, tt.reqURL, nil)
 			m := &mockURLShortener
 			m.GetFunc = tt.getFunc
-			h := handleRedirectToOriginal(m)
+			h := handleRedirect(m)
 			h(c)
 
 			res := w.Result()

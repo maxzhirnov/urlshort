@@ -12,8 +12,8 @@ func main() {
 	cfg.RedirectURLProtocol = config.HTTP
 
 	safeMap := data.NewSafeMap()
-	store := data.NewInMemoryStore(safeMap)
-	urlShortener := app.NewURLShortener(store)
-	server := NewServer(urlShortener, cfg)
+	storeService := data.NewInMemoryStore(safeMap)
+	urlShortenerService := app.NewURLShortener(storeService)
+	server := NewServer(urlShortenerService, cfg)
 	server.Run()
 }

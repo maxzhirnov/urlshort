@@ -34,9 +34,7 @@ func CheckURL(s string) (urlWithoutProtocol string, isValid bool) {
 		return "localhost", true
 	}
 
-	if !strings.HasPrefix(s, "http") {
-		s = "http://" + s
-	}
+	s = EnsureURLScheme(s)
 
 	u, err := url.ParseRequestURI(s)
 	if err != nil || !strings.Contains(u.Host, ".") {
@@ -44,4 +42,12 @@ func CheckURL(s string) (urlWithoutProtocol string, isValid bool) {
 	}
 
 	return u.Host, true
+}
+
+func EnsureURLScheme(url string) string {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		// Дефолт на http если схемы нет, чтобы не было ошибок если сайт не поддерживает https
+		return "http://" + url
+	}
+	return url
 }

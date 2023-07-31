@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/maxzhirnov/urlshort/internal/app"
 	"io"
 	"net/http"
-	"strings"
 )
 
 func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.HandlerFunc {
@@ -24,21 +24,18 @@ func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.Han
 		}
 
 		originalHost := string(data)
-		//_, isValid := app.CheckURL(originalHost)
-		//if !isValid {
-		//	//TODO: write test on that case
-		//	c.String(http.StatusBadRequest, "provided data is not an URL")
-		//}
 
 		id, err := urlShortener.Create(originalHost)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "error creating shorten url")
 			return
 		}
-		c.Writer.Header().Set("Content-Type", "text/plain")
-		c.Writer.WriteHeader(http.StatusCreated)
+
 		shortenURL := fmt.Sprintf("%s/%s", redirectHost, id)
 
+		c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		c.Writer.WriteHeader(http.StatusCreated)
+		//Отдаем в body ссылку на сокращенный url
 		if _, err := c.Writer.Write([]byte(shortenURL)); err != nil {
 			c.String(http.StatusInternalServerError, "something went wrong")
 			return
@@ -46,7 +43,7 @@ func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.Han
 	}
 }
 
-func handleRedirectToOriginal(urlShortener URLShortenerService) gin.HandlerFunc {
+func handleRedirect(urlShortener URLShortenerService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method != http.MethodGet {
 			c.String(http.StatusBadRequest, "only GET requests allowed")
@@ -60,11 +57,6 @@ func handleRedirectToOriginal(urlShortener URLShortenerService) gin.HandlerFunc 
 			return
 		}
 
-		originalURL := url.OriginalURL
-		if !strings.HasPrefix(originalURL, "http") {
-			originalURL = "https://" + originalURL
-		}
-
-		c.Redirect(http.StatusTemporaryRedirect, originalURL)
+		c.Redirect(http.StatusTemporaryRedirect, app.EnsureURLScheme(url.OriginalURL))
 	}
 }

@@ -33,7 +33,7 @@ func (s Server) Run() {
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
-	r.GET("/:ID", handleRedirectToOriginal(s.URLShortener))
+	r.GET("/:ID", handleRedirect(s.URLShortener))
 	r.POST("/", handleCreate(s.URLShortener, s.RedirectURLProtocol+s.RedirectHost))
 
 	if err := r.Run(s.ServerAddr); err != nil {
