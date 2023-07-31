@@ -31,6 +31,7 @@ func NewServer(urlShortener URLShortenerService, cfg *config.Config) *Server {
 func (s Server) Run() {
 	log.Println("Starting server...")
 
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.GET("/:ID", handleRedirectToOriginal(s.URLShortener))
 	r.POST("/", handleCreate(s.URLShortener, s.RedirectURLProtocol+s.RedirectHost))

@@ -1,7 +1,7 @@
-POST http://localhost:8181/
+POST http://localhost:8080/
 Content-Type: text/plain
 
-ya.ru
+http://localhost:8080/RtDDqEGl
 
 ###
-GET http://localhost:8181/UUZaaCEY
+GET http://localhost:8080/61hR1dIm

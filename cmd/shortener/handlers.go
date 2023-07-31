@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/maxzhirnov/urlshort/internal/app"
 	"io"
 	"net/http"
 	"strings"
@@ -24,11 +23,12 @@ func handleCreate(urlShortener URLShortenerService, redirectHost string) gin.Han
 			return
 		}
 
-		originalHost, isValid := app.CheckURL(string(data))
-		if !isValid {
-			//TODO: write test on that case
-			c.String(http.StatusBadRequest, "provided data is not an URL")
-		}
+		originalHost := string(data)
+		//_, isValid := app.CheckURL(originalHost)
+		//if !isValid {
+		//	//TODO: write test on that case
+		//	c.String(http.StatusBadRequest, "provided data is not an URL")
+		//}
 
 		id, err := urlShortener.Create(originalHost)
 		if err != nil {
