@@ -1,11 +1,14 @@
 package main
 
 import (
-	"github.com/joho/godotenv"
-	"github.com/maxzhirnov/urlshort/cmd/shortener/config"
-	"github.com/maxzhirnov/urlshort/internal/app"
-	data "github.com/maxzhirnov/urlshort/internal/data/inmemory"
+	"github.com/gin-gonic/gin"
+	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"log"
+
+	"github.com/joho/godotenv"
+	"github.com/maxzhirnov/urlshort/internal/app"
+	"github.com/maxzhirnov/urlshort/internal/config"
+	"github.com/maxzhirnov/urlshort/internal/repository/memorystorage"
 )
 
 func init() {
@@ -21,9 +24,16 @@ func main() {
 	log.Println("Starting app with config:")
 	log.Printf("Server host: %s; Redirect address: %s", cfg.ServerAddr, cfg.BaseURL)
 
-	safeMap := data.NewSafeMap()
-	storeService := data.NewInMemoryStore(safeMap)
-	urlShortenerService := app.NewURLShortener(storeService)
-	server := NewServer(urlShortenerService, cfg)
-	server.Run()
+	storage := memorystorage.New()
+	urlShortenerService := app.NewURLShortener(storage)
+	shortenerHandlers := handlers.NewShortenerHandlers(urlShortenerService, cfg.BaseURL)
+
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.Default()
+	r.GET("/:ID", shortenerHandlers.HandleRedirect())
+	r.POST("/", shortenerHandlers.HandleCreate())
+
+	if err := r.Run(cfg.ServerAddr); err != nil {
+		log.Fatalf("Couldn't start server: %s:", err)
+	}
 }

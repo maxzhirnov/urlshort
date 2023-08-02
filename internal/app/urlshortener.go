@@ -1,35 +1,42 @@
 package app
 
 import (
+	"errors"
 	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
-type StoreService interface {
+type storage interface {
 	Save(url models.URL) error
 	Get(id string) (models.URL, error)
 }
 
 type URLShortener struct {
-	Store StoreService
+	Storage storage
 }
 
-func NewURLShortener(store StoreService) *URLShortener {
+func NewURLShortener(s storage) *URLShortener {
 	return &URLShortener{
-		Store: store,
+		Storage: s,
 	}
 }
 
-func (us URLShortener) Create(originalURL string) (id string, err error) {
+func (us URLShortener) Create(originalURL string) (string, error) {
 	urlShorten := models.URL{
 		OriginalURL: originalURL,
 		ID:          generateID(8),
 	}
-	if err := us.Store.Save(urlShorten); err != nil {
+	if originalURL == "" {
+		return "", errors.New("originalURL shouldn't be empty string")
+	}
+	if err := us.Storage.Save(urlShorten); err != nil {
 		return "", err
 	}
 	return urlShorten.ID, nil
 }
 
-func (us URLShortener) Get(id string) (url models.URL, err error) {
-	return us.Store.Get(id)
+func (us URLShortener) Get(id string) (models.URL, error) {
+	if id == "" {
+		return models.URL{}, errors.New("id shouldn't be empty string")
+	}
+	return us.Storage.Get(id)
 }
