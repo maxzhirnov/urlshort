@@ -16,13 +16,13 @@ func TestSafeMap(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		inputUrl models.URL
+		inputURL models.URL
 		inputID  string
 		want     want
 	}{
 		{
 			name: "good case",
-			inputUrl: models.URL{
+			inputURL: models.URL{
 				OriginalURL: "test.com",
 				ID:          "1",
 			},
@@ -34,7 +34,7 @@ func TestSafeMap(t *testing.T) {
 		},
 		{
 			name: "zero values",
-			inputUrl: models.URL{
+			inputURL: models.URL{
 				OriginalURL: "",
 				ID:          "",
 			},
@@ -48,7 +48,7 @@ func TestSafeMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m.Store(tt.inputUrl)
+			m.Store(tt.inputURL)
 			urlObjLoaded, ok := m.Load(tt.inputID)
 
 			assert.Equal(t, tt.want.url, m.m[tt.inputID])

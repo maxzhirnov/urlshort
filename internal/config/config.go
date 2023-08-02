@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultAddress = "localhost:8080"
-	defaultBaseUrl = "http://localhost:8080"
+	defaultBaseURL = "http://localhost:8080"
 )
 
 type Protocol string
@@ -22,7 +22,7 @@ type Config struct {
 func NewDefaultConfig() *Config {
 	return &Config{
 		ServerAddr: defaultAddress,
-		BaseURL:    defaultBaseUrl,
+		BaseURL:    defaultBaseURL,
 	}
 }
 

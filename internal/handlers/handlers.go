@@ -17,13 +17,13 @@ type urlShortenerService interface {
 
 type ShortenerHandlers struct {
 	service urlShortenerService
-	baseUrl string
+	baseURL string
 }
 
-func NewShortenerHandlers(s urlShortenerService, baseUrl string) *ShortenerHandlers {
+func NewShortenerHandlers(s urlShortenerService, baseURL string) *ShortenerHandlers {
 	return &ShortenerHandlers{
 		service: s,
-		baseUrl: baseUrl,
+		baseURL: baseURL,
 	}
 }
 
@@ -49,7 +49,7 @@ func (sh *ShortenerHandlers) HandleCreate() gin.HandlerFunc {
 			return
 		}
 
-		shortenURL := fmt.Sprintf("%s/%s", sh.baseUrl, id)
+		shortenURL := fmt.Sprintf("%s/%s", sh.baseURL, id)
 
 		c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		c.Writer.WriteHeader(http.StatusCreated)

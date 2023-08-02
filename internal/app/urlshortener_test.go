@@ -107,9 +107,9 @@ func Test_Get(t *testing.T) {
 				},
 			}
 			app := NewURLShortener(storage)
-			actualUrl, actualErr := app.Get(tt.input)
-			assert.Equal(t, tt.want.url.OriginalURL, actualUrl.OriginalURL)
-			assert.Equal(t, tt.want.url.ID, actualUrl.ID)
+			actualURL, actualErr := app.Get(tt.input)
+			assert.Equal(t, tt.want.url.OriginalURL, actualURL.OriginalURL)
+			assert.Equal(t, tt.want.url.ID, actualURL.ID)
 			assert.Equal(t, tt.want.err, actualErr)
 
 		})
