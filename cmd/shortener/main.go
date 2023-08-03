@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
 	"github.com/maxzhirnov/urlshort/internal/app"
 	"github.com/maxzhirnov/urlshort/internal/config"
+	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"github.com/maxzhirnov/urlshort/internal/repository/memorystorage"
 )
 
