@@ -17,10 +17,10 @@ func NewSafeMap() *SafeMap {
 	}
 }
 
-func (sm *SafeMap) Load(id string) (urlObject models.URL, ok bool) {
+func (sm *SafeMap) Load(id string) (urlObject models.ShortURL, ok bool) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	urlObject = models.URL{}
+	urlObject = models.ShortURL{}
 	urlObject.OriginalURL, ok = sm.m[id]
 	if ok {
 		urlObject.ID = id
@@ -28,7 +28,7 @@ func (sm *SafeMap) Load(id string) (urlObject models.URL, ok bool) {
 	return urlObject, ok
 }
 
-func (sm *SafeMap) Store(url models.URL) {
+func (sm *SafeMap) Store(url models.ShortURL) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.m[url.ID] = url.OriginalURL

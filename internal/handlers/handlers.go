@@ -12,7 +12,7 @@ import (
 
 type urlShortenerService interface {
 	Create(originalURL string) (id string, err error)
-	Get(id string) (url models.URL, err error)
+	Get(id string) (url models.ShortURL, err error)
 }
 
 type ShortenerHandlers struct {

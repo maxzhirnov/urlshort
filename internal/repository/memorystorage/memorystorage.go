@@ -17,7 +17,7 @@ func New() *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) Save(url models.URL) error {
+func (s *MemoryStorage) Save(url models.ShortURL) error {
 	// check if url with this id already exists
 	if _, ok := s.sm.Load(url.ID); ok {
 		return fmt.Errorf("id: %s already presented", url.ID)
@@ -27,10 +27,15 @@ func (s *MemoryStorage) Save(url models.URL) error {
 	return nil
 }
 
-func (s *MemoryStorage) Get(id string) (models.URL, error) {
+func (s *MemoryStorage) Get(id string) (models.ShortURL, error) {
 	url, ok := s.sm.Load(id)
 	if !ok {
-		return models.URL{}, errors.New("id not found")
+		return models.ShortURL{}, errors.New("id not found")
 	}
 	return url, nil
+}
+
+func (s *MemoryStorage) Exists(id string) bool {
+	_, ok := s.sm.Load(id)
+	return ok
 }

@@ -6,8 +6,8 @@ import (
 )
 
 type storage interface {
-	Save(url models.URL) error
-	Get(id string) (models.URL, error)
+	Save(url models.ShortURL) error
+	Get(id string) (models.ShortURL, error)
 }
 
 type URLShortener struct {
@@ -21,7 +21,7 @@ func NewURLShortener(s storage) *URLShortener {
 }
 
 func (us URLShortener) Create(originalURL string) (string, error) {
-	urlShorten := models.URL{
+	urlShorten := models.ShortURL{
 		OriginalURL: originalURL,
 		ID:          generateID(8),
 	}
@@ -34,9 +34,9 @@ func (us URLShortener) Create(originalURL string) (string, error) {
 	return urlShorten.ID, nil
 }
 
-func (us URLShortener) Get(id string) (models.URL, error) {
+func (us URLShortener) Get(id string) (models.ShortURL, error) {
 	if id == "" {
-		return models.URL{}, errors.New("id shouldn't be empty string")
+		return models.ShortURL{}, errors.New("id shouldn't be empty string")
 	}
 	return us.Storage.Get(id)
 }

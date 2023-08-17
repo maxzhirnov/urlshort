@@ -8,15 +8,15 @@ import (
 )
 
 type mockStorage struct {
-	SaveFunc func(url models.URL) error
-	GetFunc  func(id string) (models.URL, error)
+	SaveFunc func(url models.ShortURL) error
+	GetFunc  func(id string) (models.ShortURL, error)
 }
 
-func (ms *mockStorage) Save(url models.URL) error {
+func (ms *mockStorage) Save(url models.ShortURL) error {
 	return ms.SaveFunc(url)
 }
 
-func (ms *mockStorage) Get(id string) (models.URL, error) {
+func (ms *mockStorage) Get(id string) (models.ShortURL, error) {
 	return ms.GetFunc(id)
 }
 
@@ -52,7 +52,7 @@ func Test_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := &mockStorage{
-				SaveFunc: func(url models.URL) error {
+				SaveFunc: func(url models.ShortURL) error {
 					return nil
 				},
 			}
@@ -66,7 +66,7 @@ func Test_Create(t *testing.T) {
 
 func Test_Get(t *testing.T) {
 	type want struct {
-		url models.URL
+		url models.ShortURL
 		err error
 	}
 
@@ -79,7 +79,7 @@ func Test_Get(t *testing.T) {
 			name:  "happy path",
 			input: "12345678",
 			want: want{
-				url: models.URL{
+				url: models.ShortURL{
 					OriginalURL: "example.com",
 					ID:          "12345678",
 				},
@@ -90,7 +90,7 @@ func Test_Get(t *testing.T) {
 			name:  "empty input case",
 			input: "",
 			want: want{
-				url: models.URL{},
+				url: models.ShortURL{},
 				err: errors.New("id shouldn't be empty string"),
 			},
 		},
@@ -99,8 +99,8 @@ func Test_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := &mockStorage{
-				GetFunc: func(id string) (models.URL, error) {
-					return models.URL{
+				GetFunc: func(id string) (models.ShortURL, error) {
+					return models.ShortURL{
 						OriginalURL: "example.com",
 						ID:          id,
 					}, nil

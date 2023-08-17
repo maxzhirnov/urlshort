@@ -16,13 +16,13 @@ func TestSafeMap(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		inputURL models.URL
+		inputURL models.ShortURL
 		inputID  string
 		want     want
 	}{
 		{
 			name: "good case",
-			inputURL: models.URL{
+			inputURL: models.ShortURL{
 				OriginalURL: "test.com",
 				ID:          "1",
 			},
@@ -34,7 +34,7 @@ func TestSafeMap(t *testing.T) {
 		},
 		{
 			name: "zero values",
-			inputURL: models.URL{
+			inputURL: models.ShortURL{
 				OriginalURL: "",
 				ID:          "",
 			},

@@ -16,14 +16,14 @@ import (
 
 type mockURLShortenerService struct {
 	CreateFunc func(originalURL string) (id string, err error)
-	GetFunc    func(id string) (url models.URL, err error)
+	GetFunc    func(id string) (url models.ShortURL, err error)
 }
 
 func (m *mockURLShortenerService) Create(originalURL string) (string, error) {
 	return m.CreateFunc(originalURL)
 }
 
-func (m *mockURLShortenerService) Get(id string) (models.URL, error) {
+func (m *mockURLShortenerService) Get(id string) (models.ShortURL, error) {
 	return m.GetFunc(id)
 }
 
@@ -31,8 +31,8 @@ var mockURLShortener = mockURLShortenerService{
 	CreateFunc: func(originalURL string) (id string, err error) {
 		return "", nil
 	},
-	GetFunc: func(id string) (url models.URL, err error) {
-		return models.URL{}, nil
+	GetFunc: func(id string) (url models.ShortURL, err error) {
+		return models.ShortURL{}, nil
 	},
 }
 
@@ -144,14 +144,16 @@ func Test_handleRedirect(t *testing.T) {
 		name    string
 		method  string
 		reqURL  string
-		getFunc func(id string) (models.URL, error)
+		getFunc func(id string) (models.ShortURL, error)
 		want    want
 	}{
 		{
-			name:    "success test case",
-			method:  http.MethodGet,
-			reqURL:  "/12345678",
-			getFunc: func(id string) (models.URL, error) { return models.URL{OriginalURL: "ya.ru", ID: "12345678"}, nil },
+			name:   "success test case",
+			method: http.MethodGet,
+			reqURL: "/12345678",
+			getFunc: func(id string) (models.ShortURL, error) {
+				return models.ShortURL{OriginalURL: "ya.ru", ID: "12345678"}, nil
+			},
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
 				location:   "http://ya.ru",
@@ -161,7 +163,7 @@ func Test_handleRedirect(t *testing.T) {
 			name:    "test case error",
 			method:  http.MethodGet,
 			reqURL:  "/12345678",
-			getFunc: func(id string) (models.URL, error) { return models.URL{}, errors.New("error occurred") },
+			getFunc: func(id string) (models.ShortURL, error) { return models.ShortURL{}, errors.New("error occurred") },
 			want: want{
 				statusCode: http.StatusNotFound,
 				location:   "",

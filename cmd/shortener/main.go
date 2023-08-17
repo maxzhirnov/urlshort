@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/maxzhirnov/urlshort/internal/logging"
+	"github.com/maxzhirnov/urlshort/internal/middleware"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -19,11 +21,17 @@ func init() {
 }
 
 func main() {
+	logger, err := logging.NewZapSugared()
+	if err != nil {
+		panic(err)
+	}
+
 	cfg := config.NewDefaultConfig()
 	cfg.Parse()
 
-	log.Println("Starting app with config:")
-	log.Printf("Server host: %s; Redirect address: %s", cfg.ServerAddr, cfg.BaseURL)
+	logger.Info("Starting app",
+		"server_addr", cfg.ServerAddr,
+		"base_url", cfg.BaseURL)
 
 	storage := memorystorage.New()
 	urlShortenerService := app.NewURLShortener(storage)
@@ -31,10 +39,13 @@ func main() {
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+	r.Use(middleware.Logging(logger))
 	r.GET("/:ID", shortenerHandlers.HandleRedirect())
 	r.POST("/", shortenerHandlers.HandleCreate())
 
 	if err := r.Run(cfg.ServerAddr); err != nil {
-		log.Fatalf("Couldn't start server: %s:", err)
+		logger.Error("Couldn't start server",
+			"error", err,
+		)
 	}
 }
