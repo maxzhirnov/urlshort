@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"net/http"
@@ -185,6 +186,67 @@ func Test_handleRedirect(t *testing.T) {
 			defer res.Body.Close()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
+		})
+	}
+}
+
+func TestHandleShorten(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name           string
+		input          []byte
+		expectedStatus int
+		mockFunc       func(originalURL string) (id string, err error)
+	}{
+		{
+			name:           "invalid json",
+			input:          []byte(`{"invalid":"json"`),
+			expectedStatus: http.StatusBadRequest,
+			mockFunc:       mockURLShortener.CreateFunc,
+		},
+		{
+			name:           "short url",
+			input:          []byte(`{"URL": "ab"}`),
+			expectedStatus: http.StatusBadRequest,
+			mockFunc:       mockURLShortener.CreateFunc,
+		},
+		{
+			name:           "internal server error",
+			input:          []byte(`{"URL": "https://example.com"}`),
+			expectedStatus: http.StatusInternalServerError,
+			mockFunc: func(originalURL string) (id string, err error) {
+				return "", errors.New("mocked error")
+			},
+		},
+		{
+			name:           "successful shorten",
+			input:          []byte(`{"URL": "https://example.com"}`),
+			expectedStatus: http.StatusCreated,
+			mockFunc: func(originalURL string) (id string, err error) {
+				return "123456", nil
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			router := gin.Default()
+			mockService := &mockURLShortenerService{
+				CreateFunc: tt.mockFunc,
+			}
+			sh := &ShortenerHandlers{
+				service: mockService,
+				baseURL: "http://example.com",
+			}
+			router.POST("/shorten", sh.HandleShorten)
+
+			req, _ := http.NewRequest(http.MethodPost, "/shorten", bytes.NewReader(tt.input))
+			resp := httptest.NewRecorder()
+
+			router.ServeHTTP(resp, req)
+
+			assert.Equal(t, tt.expectedStatus, resp.Code)
 		})
 	}
 }

@@ -42,6 +42,8 @@ func main() {
 	r.Use(middleware.Logging(logger))
 	r.GET("/:ID", shortenerHandlers.HandleRedirect())
 	r.POST("/", shortenerHandlers.HandleCreate())
+	api := r.Group("/api")
+	api.POST("/shorten", shortenerHandlers.HandleShorten)
 
 	if err := r.Run(cfg.ServerAddr); err != nil {
 		logger.Error("Couldn't start server",
