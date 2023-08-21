@@ -38,8 +38,12 @@ func main() {
 	shortenerHandlers := handlers.NewShortenerHandlers(urlShortenerService, cfg.BaseURL)
 
 	gin.SetMode(gin.ReleaseMode)
+
 	r := gin.Default()
+
 	r.Use(middleware.Logging(logger))
+	r.Use(middleware.GzipMiddleware())
+
 	r.GET("/:ID", shortenerHandlers.HandleRedirect())
 	r.POST("/", shortenerHandlers.HandleCreate())
 	api := r.Group("/api")

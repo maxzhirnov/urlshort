@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/aoX75aT6
+GET http://localhost:8080/LLcpulim
 
 
 ### /api/shorten
@@ -12,5 +12,5 @@ POST http://localhost:8080/api/shorten
 Content-Type: application/json
 
 {
-  "url": "cc"
+  "url": "ya.ru"
 }
