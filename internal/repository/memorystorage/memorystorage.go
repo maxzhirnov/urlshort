@@ -24,7 +24,7 @@ func (s *MemoryStorage) Save(url models.ShortURL) error {
 	s.logger.Info("invoking Save() method in memory storage repo")
 	// check if url with this id already exists
 	if _, ok := s.sm.Load(url.ID); ok {
-		err := errors.New(fmt.Sprintf("id: %s already presented", url.ID))
+		err := fmt.Errorf("id: %s already presented", url.ID)
 		s.logger.Error("error saving url in memory storage repo",
 			"errorMessage", err)
 		return err

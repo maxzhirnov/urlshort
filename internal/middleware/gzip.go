@@ -11,9 +11,9 @@ import (
 
 func GzipMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Decompress if needed
+		// Распаковка
 		if c.GetHeader("Content-Encoding") == "gzip" {
-			gr, err := NewGzipReader(c.Request.Body)
+			gr, err := gzip.NewReader(c.Request.Body)
 			if err != nil {
 				c.AbortWithStatus(http.StatusBadRequest)
 				return
@@ -25,33 +25,27 @@ func GzipMiddleware() gin.HandlerFunc {
 				c.AbortWithStatus(http.StatusBadRequest)
 				return
 			}
-
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 
-		// Хранение текущего Writer для восстановления позднее
+		gw := gzip.NewWriter(c.Writer)
+		defer gw.Close()
+
+		// Прихраним оригинальный writer
 		originalWriter := c.Writer
-		// Проверка необходимости сжатия в ответе и установка writer
-		gw := NewGzipResponseWriter(c.Writer)
-		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-			c.Writer = gw
-		}
+		c.Writer = &gzipResponseWriter{gw, originalWriter}
 
-		c.Next() // Передача управления следующему обработчику
+		c.Next()
 
-		// Проверка Content-Type ответа
 		contentType := c.Writer.Header().Get("Content-Type")
-		if !(strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")) {
-			// Если Content-Type не соответствует ожидаемому, восстанавливаем оригинальный writer и завершаем функцию
+		if strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html") {
+			if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+				c.Writer.Header().Set("Content-Encoding", "gzip")
+			}
+		} else {
+			// Если Content-Type не json или html, восстанавливаем оригинальный writer
 			c.Writer = originalWriter
-			return
 		}
-
-		// Если Content-Type соответствует ожидаемому, устанавливаем заголовок сжатия
-		c.Writer.Header().Set("Content-Encoding", "gzip")
-
-		// Закрытие gw
-		_ = gw.Close()
 	}
 }
 
@@ -60,27 +54,6 @@ type gzipResponseWriter struct {
 	gin.ResponseWriter
 }
 
-func NewGzipResponseWriter(w gin.ResponseWriter) *gzipResponseWriter {
-	gw := gzip.NewWriter(w)
-	return &gzipResponseWriter{gw, w}
-}
-
 func (g *gzipResponseWriter) Write(data []byte) (int, error) {
 	return g.writer.Write(data)
-}
-
-func (g *gzipResponseWriter) Close() error {
-	return g.writer.Close()
-}
-
-type gzipReader struct {
-	*gzip.Reader
-}
-
-func NewGzipReader(r io.Reader) (*gzipReader, error) {
-	gr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-	return &gzipReader{gr}, nil
 }
