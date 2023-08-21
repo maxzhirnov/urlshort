@@ -7,7 +7,8 @@ type ZapSugaredAdapter struct {
 }
 
 func NewZapSugared() (*ZapSugaredAdapter, error) {
-	logger, err := zap.NewProduction()
+	logger, err := zap.NewProduction(zap.AddCallerSkip(1))
+
 	if err != nil {
 		return nil, err
 	}

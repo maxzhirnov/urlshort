@@ -11,11 +11,6 @@ import (
 
 func GzipMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Only handle when it's application/json or text/html
-		if c.GetHeader("Content-Type") != "application/json" && c.GetHeader("Content-Type") != "text/html" {
-			c.Next()
-			return
-		}
 		// Decompress if needed
 		if c.GetHeader("Content-Encoding") == "gzip" {
 			gr, err := NewGzipReader(c.Request.Body)
@@ -34,16 +29,29 @@ func GzipMiddleware() gin.HandlerFunc {
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 
-		// Check response compression and set writer
+		// Хранение текущего Writer для восстановления позднее
+		originalWriter := c.Writer
+		// Проверка необходимости сжатия в ответе и установка writer
 		gw := NewGzipResponseWriter(c.Writer)
-		defer gw.Close()
-
 		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-			c.Writer.Header().Set("Content-Encoding", "gzip")
 			c.Writer = gw
 		}
 
-		c.Next()
+		c.Next() // Передача управления следующему обработчику
+
+		// Проверка Content-Type ответа
+		contentType := c.Writer.Header().Get("Content-Type")
+		if !(strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")) {
+			// Если Content-Type не соответствует ожидаемому, восстанавливаем оригинальный writer и завершаем функцию
+			c.Writer = originalWriter
+			return
+		}
+
+		// Если Content-Type соответствует ожидаемому, устанавливаем заголовок сжатия
+		c.Writer.Header().Set("Content-Encoding", "gzip")
+
+		// Закрытие gw
+		_ = gw.Close()
 	}
 }
 

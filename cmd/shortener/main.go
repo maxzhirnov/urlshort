@@ -33,7 +33,7 @@ func main() {
 		"server_addr", cfg.ServerAddr,
 		"base_url", cfg.BaseURL)
 
-	storage := memorystorage.New()
+	storage := memorystorage.New(logger)
 	urlShortenerService := app.NewURLShortener(storage)
 	shortenerHandlers := handlers.NewShortenerHandlers(urlShortenerService, cfg.BaseURL)
 
