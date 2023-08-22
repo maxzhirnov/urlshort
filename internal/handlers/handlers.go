@@ -3,12 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/maxzhirnov/urlshort/internal/models"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/maxzhirnov/urlshort/internal/app"
+	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 type urlShortenerService interface {
@@ -75,25 +75,27 @@ func (sh *ShortenerHandlers) HandleRedirect() gin.HandlerFunc {
 	}
 }
 
-func (sh *ShortenerHandlers) HandleShorten(c *gin.Context) {
-	var reqData models.ShortenRequest
-	if err := json.NewDecoder(c.Request.Body).Decode(&reqData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "you should provide correct data"})
-		return
-	}
-	defer c.Request.Body.Close()
+func (sh *ShortenerHandlers) HandleShorten() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var reqData models.ShortenRequest
+		if err := json.NewDecoder(c.Request.Body).Decode(&reqData); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "you should provide correct data"})
+			return
+		}
+		defer c.Request.Body.Close()
 
-	if len(reqData.URL) < 3 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "url should be valid url"})
-		return
-	}
+		if len(reqData.URL) < 3 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "url should be valid url"})
+			return
+		}
 
-	shortenID, err := sh.service.Create(reqData.URL)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
-		return
+		shortenID, err := sh.service.Create(reqData.URL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+			return
+		}
+		shortenURL := sh.baseURL + "/" + shortenID
+		response := models.ShortenResponse{Result: shortenURL}
+		c.JSON(http.StatusCreated, response)
 	}
-	shortenURL := sh.baseURL + "/" + shortenID
-	response := models.ShortenResponse{Result: shortenURL}
-	c.JSON(http.StatusCreated, response)
 }

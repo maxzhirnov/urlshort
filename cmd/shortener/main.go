@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/maxzhirnov/urlshort/internal/logging"
-	"github.com/maxzhirnov/urlshort/internal/middleware"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +9,8 @@ import (
 	"github.com/maxzhirnov/urlshort/internal/app"
 	"github.com/maxzhirnov/urlshort/internal/config"
 	"github.com/maxzhirnov/urlshort/internal/handlers"
+	"github.com/maxzhirnov/urlshort/internal/logging"
+	"github.com/maxzhirnov/urlshort/internal/middleware"
 	"github.com/maxzhirnov/urlshort/internal/repository/memorystorage"
 )
 
@@ -46,8 +46,9 @@ func main() {
 
 	r.GET("/:ID", shortenerHandlers.HandleRedirect())
 	r.POST("/", shortenerHandlers.HandleCreate())
+
 	api := r.Group("/api")
-	api.POST("/shorten", shortenerHandlers.HandleShorten)
+	api.POST("/shorten", shortenerHandlers.HandleShorten())
 
 	if err := r.Run(cfg.ServerAddr); err != nil {
 		logger.Error("Couldn't start server",
