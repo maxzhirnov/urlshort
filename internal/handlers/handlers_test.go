@@ -239,7 +239,7 @@ func TestHandleShorten(t *testing.T) {
 				service: mockService,
 				baseURL: "http://example.com",
 			}
-			router.POST("/shorten", sh.HandleShorten)
+			router.POST("/shorten", sh.HandleShorten())
 
 			req, _ := http.NewRequest(http.MethodPost, "/shorten", bytes.NewReader(tt.input))
 			resp := httptest.NewRecorder()
