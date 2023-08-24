@@ -5,16 +5,17 @@ import (
 	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
-type storage interface {
-	Save(url models.ShortURL) error
+type Storage interface {
+	Create(url models.ShortURL) error
 	Get(id string) (models.ShortURL, error)
+	Close() error
 }
 
 type URLShortener struct {
-	Storage storage
+	Storage Storage
 }
 
-func NewURLShortener(s storage) *URLShortener {
+func NewURLShortener(s Storage) *URLShortener {
 	return &URLShortener{
 		Storage: s,
 	}
@@ -28,7 +29,7 @@ func (us URLShortener) Create(originalURL string) (string, error) {
 	if originalURL == "" {
 		return "", errors.New("originalURL shouldn't be empty string")
 	}
-	if err := us.Storage.Save(urlShorten); err != nil {
+	if err := us.Storage.Create(urlShorten); err != nil {
 		return "", err
 	}
 	return urlShorten.ID, nil

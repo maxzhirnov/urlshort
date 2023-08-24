@@ -11,7 +11,7 @@ import (
 	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"github.com/maxzhirnov/urlshort/internal/logging"
 	"github.com/maxzhirnov/urlshort/internal/middleware"
-	"github.com/maxzhirnov/urlshort/internal/repository/memorystorage"
+	"github.com/maxzhirnov/urlshort/internal/repository"
 )
 
 func init() {
@@ -26,16 +26,29 @@ func main() {
 		panic(err)
 	}
 
-	cfg := config.NewDefaultConfig()
-	cfg.Parse()
+	cfg, err := config.NewFromFlags()
+	if err != nil {
+		logger.Error(err.Error())
+	}
 
 	logger.Info("Starting app",
 		"server_addr", cfg.ServerAddr,
-		"base_url", cfg.BaseURL)
+		"base_url", cfg.BaseURL(),
+		"file_storage_path", cfg.FileStoragePath())
 
-	storage := memorystorage.New(logger)
-	urlShortenerService := app.NewURLShortener(storage)
-	shortenerHandlers := handlers.NewShortenerHandlers(urlShortenerService, cfg.BaseURL)
+	var storage app.Storage
+	if cfg.FileStoragePath() == "" {
+		storage = repository.NewMemoryStorage(logger)
+	} else {
+		storage, err = repository.NewFileStorage(cfg.FileStoragePath(), logger)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}
+	defer storage.Close()
+
+	service := app.NewURLShortener(storage)
+	shortenerHandlers := handlers.NewShortenerHandlers(service, cfg.BaseURL())
 
 	gin.SetMode(gin.ReleaseMode)
 
@@ -50,7 +63,7 @@ func main() {
 	api := r.Group("/api")
 	api.POST("/shorten", shortenerHandlers.HandleShorten())
 
-	if err := r.Run(cfg.ServerAddr); err != nil {
+	if err := r.Run(cfg.ServerAddr()); err != nil {
 		logger.Error("Couldn't start server",
 			"error", err,
 		)

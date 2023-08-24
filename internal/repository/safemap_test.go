@@ -1,13 +1,15 @@
-package memorystorage
+package repository
 
 import (
-	"github.com/maxzhirnov/urlshort/internal/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 func TestSafeMap(t *testing.T) {
-	m := NewSafeMap()
+	m := newSafeMap()
 
 	type want struct {
 		id  string

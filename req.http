@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/tPFt2T6K
+GET http://localhost:8080/TFbnHiH8
 
 ###
 GET /OgeqAqt9 HTTP/1.1
@@ -15,7 +15,7 @@ User-Agent: Apache-HttpClient/4.5.14 (Java/17.0.7)
 Accept-Encoding: br,deflate,gzip,x-gzip
 
 ### compressed with gzip
-GET http://localhost:8080/2HKSVGqX
+GET http://localhost:8080/x44vCtGy
 Content-Encoding: gzip
 
 ### /api/shorten

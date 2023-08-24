@@ -1,9 +1,11 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/maxzhirnov/urlshort/internal/logging"
 	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/maxzhirnov/urlshort/internal/logging"
 )
 
 func Logging(logger logging.Logger) gin.HandlerFunc {

@@ -12,7 +12,7 @@ type mockStorage struct {
 	GetFunc  func(id string) (models.ShortURL, error)
 }
 
-func (ms *mockStorage) Save(url models.ShortURL) error {
+func (ms *mockStorage) Create(url models.ShortURL) error {
 	return ms.SaveFunc(url)
 }
 

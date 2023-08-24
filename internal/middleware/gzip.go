@@ -42,7 +42,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		contentType := c.GetHeader("Content-Type")
 		acceptEncoding := c.GetHeader("Accept-Encoding")
 		if strings.Contains(acceptEncoding, "gzip") {
-			if strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html") {
+			if strings.Contains(contentType, gin.MIMEJSON) || strings.Contains(contentType, gin.MIMEHTML) {
 				gzWriter := gzip.NewWriter(c.Writer)
 				defer gzWriter.Close()
 
@@ -53,7 +53,6 @@ func GzipMiddleware() gin.HandlerFunc {
 				}
 			}
 		}
-
 		c.Next()
 	}
 }

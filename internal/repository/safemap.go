@@ -1,4 +1,4 @@
-package memorystorage
+package repository
 
 import (
 	"sync"
@@ -6,18 +6,18 @@ import (
 	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
-type SafeMap struct {
+type safeMap struct {
 	mu sync.RWMutex
 	m  map[string]string
 }
 
-func NewSafeMap() *SafeMap {
-	return &SafeMap{
+func newSafeMap() *safeMap {
+	return &safeMap{
 		m: make(map[string]string),
 	}
 }
 
-func (sm *SafeMap) Load(id string) (urlObject models.ShortURL, ok bool) {
+func (sm *safeMap) Load(id string) (urlObject models.ShortURL, ok bool) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	urlObject = models.ShortURL{}
@@ -28,7 +28,7 @@ func (sm *SafeMap) Load(id string) (urlObject models.ShortURL, ok bool) {
 	return urlObject, ok
 }
 
-func (sm *SafeMap) Store(url models.ShortURL) {
+func (sm *safeMap) Store(url models.ShortURL) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.m[url.ID] = url.OriginalURL

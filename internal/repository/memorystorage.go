@@ -1,27 +1,27 @@
-package memorystorage
+package repository
 
 import (
 	"errors"
 	"fmt"
-	"github.com/maxzhirnov/urlshort/internal/logging"
 
+	"github.com/maxzhirnov/urlshort/internal/logging"
 	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 type MemoryStorage struct {
 	logger logging.Logger
-	sm     *SafeMap
+	sm     *safeMap
 }
 
-func New(logger logging.Logger) *MemoryStorage {
+func NewMemoryStorage(logger logging.Logger) *MemoryStorage {
 	return &MemoryStorage{
-		sm:     NewSafeMap(),
+		sm:     newSafeMap(),
 		logger: logger,
 	}
 }
 
-func (s *MemoryStorage) Save(url models.ShortURL) error {
-	s.logger.Info("invoking Save() method in memory storage repo")
+func (s *MemoryStorage) Create(url models.ShortURL) error {
+	s.logger.Info("invoking Create() method in memory storage repo")
 	// check if url with this id already exists
 	if _, ok := s.sm.Load(url.ID); ok {
 		err := fmt.Errorf("id: %s already presented", url.ID)
@@ -54,10 +54,6 @@ func (s *MemoryStorage) Get(id string) (models.ShortURL, error) {
 	return url, nil
 }
 
-func (s *MemoryStorage) Exists(id string) bool {
-	s.logger.Info("invoking Exists() method in memory storage repo")
-	_, ok := s.sm.Load(id)
-	s.logger.Info("Result of Exists()",
-		"result", ok)
-	return ok
+func (s *MemoryStorage) Close() error {
+	return nil
 }
