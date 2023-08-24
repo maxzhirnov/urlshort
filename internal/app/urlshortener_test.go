@@ -2,9 +2,11 @@ package app
 
 import (
 	"errors"
-	"github.com/maxzhirnov/urlshort/internal/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 type mockStorage struct {
@@ -18,6 +20,10 @@ func (ms *mockStorage) Create(url models.ShortURL) error {
 
 func (ms *mockStorage) Get(id string) (models.ShortURL, error) {
 	return ms.GetFunc(id)
+}
+
+func (ms *mockStorage) Close() error {
+	return nil
 }
 
 func Test_Create(t *testing.T) {
