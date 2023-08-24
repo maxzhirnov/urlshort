@@ -32,7 +32,7 @@ func main() {
 	}
 
 	logger.Info("Starting app",
-		"server_addr", cfg.ServerAddr,
+		"server_addr", cfg.ServerAddr(),
 		"base_url", cfg.BaseURL(),
 		"file_storage_path", cfg.FileStoragePath())
 
