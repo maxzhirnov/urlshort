@@ -7,7 +7,7 @@ import (
 
 const (
 	serverAddrFlag      = "a"
-	baseUrlFlag         = "b"
+	baseURLFlag         = "b"
 	fileStoragePathFlag = "f"
 
 	defaultServerAddr      = "localhost:8080"
@@ -49,7 +49,7 @@ func NewFromFlags() (*Config, error) {
 	flag.StringVar(&serverAddr, serverAddrFlag, defaultServerAddr, serverAddrFlagUsageMessage)
 
 	var baseURL string
-	flag.StringVar(&baseURL, baseUrlFlag, defaultBaseURL, baseURLFlagUsageMessage)
+	flag.StringVar(&baseURL, baseURLFlag, defaultBaseURL, baseURLFlagUsageMessage)
 
 	var fileStoragePath string
 	flag.StringVar(&fileStoragePath, fileStoragePathFlag, defaultFileStoragePath, fileStoragePathUsageMessage)
