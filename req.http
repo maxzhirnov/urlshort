@@ -4,19 +4,8 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/TFbnHiH8
+GET http://localhost:8080/qU75pwZd
 
-###
-GET /OgeqAqt9 HTTP/1.1
-Content-Type: application/json
-Host: localhost:8080
-Connection: Keep-Alive
-User-Agent: Apache-HttpClient/4.5.14 (Java/17.0.7)
-Accept-Encoding: br,deflate,gzip,x-gzip
-
-### compressed with gzip
-GET http://localhost:8080/x44vCtGy
-Content-Encoding: gzip
 
 ### /api/shorten
 POST http://localhost:8080/api/shorten

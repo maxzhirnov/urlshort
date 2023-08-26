@@ -36,18 +36,19 @@ func main() {
 		"base_url", cfg.BaseURL(),
 		"file_storage_path", cfg.FileStoragePath())
 
-	var storage app.Storage
-	if cfg.FileStoragePath() == "" {
-		storage = repository.NewMemoryStorage(logger)
-	} else {
-		storage, err = repository.NewFileStorage(cfg.FileStoragePath(), logger)
-		if err != nil {
+	memoryStorage := repository.NewPersistentMemoryStorage(logger)
+
+	if cfg.FileStoragePath() != "" {
+		if err := memoryStorage.WithFileStorage(cfg.FileStoragePath()); err != nil {
 			logger.Error(err.Error())
 		}
+		if err := memoryStorage.LoadFileData(); err != nil {
+			logger.Error(err.Error())
+		}
+		defer memoryStorage.Close()
 	}
-	defer storage.Close()
 
-	service := app.NewURLShortener(storage)
+	service := app.NewURLShortener(memoryStorage)
 	shortenerHandlers := handlers.NewShortenerHandlers(service, cfg.BaseURL())
 
 	gin.SetMode(gin.ReleaseMode)
@@ -55,7 +56,7 @@ func main() {
 	r := gin.Default()
 
 	r.Use(middleware.Logging(logger))
-	r.Use(middleware.GzipMiddleware())
+	r.Use(middleware.Gzip())
 
 	r.GET("/:ID", shortenerHandlers.HandleRedirect())
 	r.POST("/", shortenerHandlers.HandleCreate())

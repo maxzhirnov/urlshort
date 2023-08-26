@@ -14,7 +14,7 @@ import (
 
 func TestGzipMiddleware(t *testing.T) {
 	r := gin.Default()
-	r.Use(GzipMiddleware())
+	r.Use(Gzip())
 
 	r.POST("/test", func(c *gin.Context) {
 		buf := new(bytes.Buffer)
@@ -47,6 +47,7 @@ func TestGzipMiddleware(t *testing.T) {
 	gr, err := gzip.NewReader(w.Body)
 	assert.Nil(t, err)
 	respBody, err := io.ReadAll(gr)
+	respBodyString := string(respBody)
 	assert.Nil(t, err)
-	assert.Equal(t, "response body", string(respBody))
+	assert.Equal(t, "response body", respBodyString)
 }
