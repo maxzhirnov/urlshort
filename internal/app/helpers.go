@@ -1,30 +1,9 @@
 package app
 
 import (
-	"math/rand"
 	"net/url"
 	"strings"
-	"time"
 )
-
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-func generateID(length int) string {
-	// minimum id length is 4 symbols
-	// TODO: think if it's better to return error here
-	if length < 4 {
-		length = 4
-	}
-
-	seededRand := rand.New(
-		rand.NewSource(time.Now().UnixNano()))
-
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}
-	return string(b)
-}
 
 // CheckURL verifies if the provided string is a valid URL.
 // If valid, it returns true and the possibly modified URL string.

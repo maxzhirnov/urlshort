@@ -4,11 +4,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/maxzhirnov/urlshort/internal/logging"
 )
 
-func Logging(logger logging.Logger) gin.HandlerFunc {
+func Logging(logger logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
 		c.Next()

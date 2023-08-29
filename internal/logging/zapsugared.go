@@ -25,3 +25,7 @@ func (z *ZapSugaredAdapter) Info(msg string, keysAndValues ...interface{}) {
 func (z *ZapSugaredAdapter) Error(msg string, keysAndValues ...interface{}) {
 	z.SugaredLogger.Errorw(msg, keysAndValues...)
 }
+
+func (z *ZapSugaredAdapter) Fatal(msg string, keysAndValues ...interface{}) {
+	z.SugaredLogger.Fatalw(msg, keysAndValues...)
+}

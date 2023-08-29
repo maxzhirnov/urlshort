@@ -12,9 +12,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type mockLogger struct{}
+
+func (l mockLogger) Info(msg string, keysAndValues ...interface{})  {}
+func (l mockLogger) Error(msg string, keysAndValues ...interface{}) {}
+func (l mockLogger) Fatal(msg string, keysAndValues ...interface{}) {}
+
 func TestGzipMiddleware(t *testing.T) {
+	gzipWriter, err := gzip.NewWriterLevel(nil, gzip.BestSpeed)
+	if err != nil {
+		t.Error(err)
+	}
 	r := gin.Default()
-	r.Use(Gzip())
+	r.Use(Gzip(&mockLogger{}, gzipWriter))
 
 	r.POST("/test", func(c *gin.Context) {
 		buf := new(bytes.Buffer)

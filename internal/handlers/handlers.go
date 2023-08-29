@@ -14,7 +14,7 @@ import (
 
 type urlShortenerService interface {
 	Create(originalURL string) (id string, err error)
-	Get(id string) (url models.ShortURL, err error)
+	Get(id string) (url *models.ShortURL, err error)
 }
 
 type ShortenerHandlers struct {
@@ -29,74 +29,68 @@ func NewShortenerHandlers(s urlShortenerService, baseURL string) *ShortenerHandl
 	}
 }
 
-func (sh *ShortenerHandlers) HandleCreate() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		defer c.Request.Body.Close()
-		data, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "Error reading request body")
-			return
-		}
+func (sh *ShortenerHandlers) HandleCreate(c *gin.Context) {
+	defer c.Request.Body.Close()
+	data, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error reading request body")
+		return
+	}
 
-		if len(data) == 0 {
-			c.String(http.StatusBadRequest, "url shouldn't be empty")
-			return
-		}
+	if len(data) == 0 {
+		c.String(http.StatusBadRequest, "url shouldn't be empty")
+		return
+	}
 
-		originalHost := string(data)
+	originalHost := string(data)
 
-		id, err := sh.service.Create(originalHost)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "error creating shorten url")
-			return
-		}
+	id, err := sh.service.Create(originalHost)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "error creating shorten url")
+		return
+	}
 
-		shortenURL := fmt.Sprintf("%s/%s", sh.baseURL, id)
+	shortenURL := fmt.Sprintf("%s/%s", sh.baseURL, id)
 
-		c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		c.Writer.WriteHeader(http.StatusCreated)
-		//Отдаем в body ссылку на сокращенный url
-		if _, err := c.Writer.Write([]byte(shortenURL)); err != nil {
-			c.String(http.StatusInternalServerError, "something went wrong")
-			return
-		}
+	c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	c.Writer.WriteHeader(http.StatusCreated)
+	//Отдаем в body ссылку на сокращенный url
+	if _, err := c.Writer.Write([]byte(shortenURL)); err != nil {
+		c.String(http.StatusInternalServerError, "something went wrong")
+		return
 	}
 }
 
-func (sh *ShortenerHandlers) HandleRedirect() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		id := c.Param("ID")
-		url, err := sh.service.Get(id)
-		if err != nil {
-			c.String(http.StatusNotFound, "id not found")
-			return
-		}
-
-		c.Redirect(http.StatusTemporaryRedirect, app.EnsureURLScheme(url.OriginalURL))
+func (sh *ShortenerHandlers) HandleRedirect(c *gin.Context) {
+	id := c.Param("ID")
+	url, err := sh.service.Get(id)
+	if err != nil {
+		c.String(http.StatusNotFound, "id not found")
+		return
 	}
+
+	c.Redirect(http.StatusTemporaryRedirect, app.EnsureURLScheme(url.OriginalURL))
 }
 
-func (sh *ShortenerHandlers) HandleShorten() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var reqData models.ShortenRequest
-		if err := json.NewDecoder(c.Request.Body).Decode(&reqData); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "you should provide correct data"})
-			return
-		}
-		defer c.Request.Body.Close()
-
-		if len(reqData.URL) < 3 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "url should be valid url"})
-			return
-		}
-
-		shortenID, err := sh.service.Create(reqData.URL)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
-			return
-		}
-		shortenURL := sh.baseURL + "/" + shortenID
-		response := models.ShortenResponse{Result: shortenURL}
-		c.JSON(http.StatusCreated, response)
+func (sh *ShortenerHandlers) HandleShorten(c *gin.Context) {
+	var reqData models.ShortenRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&reqData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you should provide correct data"})
+		return
 	}
+	defer c.Request.Body.Close()
+
+	if len(reqData.URL) < 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url should be valid url"})
+		return
+	}
+
+	shortenID, err := sh.service.Create(reqData.URL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+		return
+	}
+	shortenURL := sh.baseURL + "/" + shortenID
+	response := models.ShortenResponse{Result: shortenURL}
+	c.JSON(http.StatusCreated, response)
 }

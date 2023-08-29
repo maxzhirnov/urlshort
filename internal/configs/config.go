@@ -1,4 +1,4 @@
-package config
+package configs
 
 import (
 	"flag"
@@ -86,4 +86,11 @@ func (c Config) BaseURL() string {
 
 func (c Config) FileStoragePath() string {
 	return c.fileStoragePath
+}
+
+func (c Config) ShouldSaveToFile() bool {
+	if c.fileStoragePath == "" {
+		return false
+	}
+	return true
 }

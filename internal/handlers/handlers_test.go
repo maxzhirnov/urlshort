@@ -10,21 +10,22 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/maxzhirnov/urlshort/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 type mockURLShortenerService struct {
 	CreateFunc func(originalURL string) (id string, err error)
-	GetFunc    func(id string) (url models.ShortURL, err error)
+	GetFunc    func(id string) (url *models.ShortURL, err error)
 }
 
 func (m *mockURLShortenerService) Create(originalURL string) (string, error) {
 	return m.CreateFunc(originalURL)
 }
 
-func (m *mockURLShortenerService) Get(id string) (models.ShortURL, error) {
+func (m *mockURLShortenerService) Get(id string) (*models.ShortURL, error) {
 	return m.GetFunc(id)
 }
 
@@ -32,8 +33,8 @@ var mockURLShortener = mockURLShortenerService{
 	CreateFunc: func(originalURL string) (id string, err error) {
 		return "", nil
 	},
-	GetFunc: func(id string) (url models.ShortURL, err error) {
-		return models.ShortURL{}, nil
+	GetFunc: func(id string) (url *models.ShortURL, err error) {
+		return &models.ShortURL{}, nil
 	},
 }
 
@@ -121,7 +122,7 @@ func Test_handleCreate(t *testing.T) {
 			m := &mockURLShortener
 			m.CreateFunc = tt.createFunc
 			handlers := NewShortenerHandlers(m, tt.redirectHost)
-			h := handlers.HandleCreate()
+			h := handlers.HandleCreate
 			h(c)
 
 			res := w.Result()
@@ -145,15 +146,15 @@ func Test_handleRedirect(t *testing.T) {
 		name    string
 		method  string
 		reqURL  string
-		getFunc func(id string) (models.ShortURL, error)
+		getFunc func(id string) (*models.ShortURL, error)
 		want    want
 	}{
 		{
 			name:   "success test case",
 			method: http.MethodGet,
 			reqURL: "/12345678",
-			getFunc: func(id string) (models.ShortURL, error) {
-				return models.ShortURL{OriginalURL: "ya.ru", ID: "12345678"}, nil
+			getFunc: func(id string) (*models.ShortURL, error) {
+				return &models.ShortURL{OriginalURL: "ya.ru", ID: "12345678"}, nil
 			},
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
@@ -164,7 +165,7 @@ func Test_handleRedirect(t *testing.T) {
 			name:    "test case error",
 			method:  http.MethodGet,
 			reqURL:  "/12345678",
-			getFunc: func(id string) (models.ShortURL, error) { return models.ShortURL{}, errors.New("error occurred") },
+			getFunc: func(id string) (*models.ShortURL, error) { return &models.ShortURL{}, errors.New("error occurred") },
 			want: want{
 				statusCode: http.StatusNotFound,
 				location:   "",
@@ -179,7 +180,7 @@ func Test_handleRedirect(t *testing.T) {
 			m := &mockURLShortener
 			m.GetFunc = tt.getFunc
 			handlers := NewShortenerHandlers(m, "")
-			h := handlers.HandleRedirect()
+			h := handlers.HandleRedirect
 			h(c)
 
 			res := w.Result()
@@ -239,7 +240,7 @@ func TestHandleShorten(t *testing.T) {
 				service: mockService,
 				baseURL: "http://example.com",
 			}
-			router.POST("/shorten", sh.HandleShorten())
+			router.POST("/shorten", sh.HandleShorten)
 
 			req, _ := http.NewRequest(http.MethodPost, "/shorten", bytes.NewReader(tt.input))
 			resp := httptest.NewRecorder()

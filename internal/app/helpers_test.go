@@ -57,7 +57,7 @@ func Test_generateID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, len(generateID(tt.val)))
+			assert.Equal(t, tt.want, len(NewRandIDGenerator(tt.val).Generate()))
 		})
 	}
 }

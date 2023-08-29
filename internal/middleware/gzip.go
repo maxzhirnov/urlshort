@@ -4,21 +4,16 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-var gzWriter *gzip.Writer
-
-func init() {
-	var err error
-	gzWriter, err = gzip.NewWriterLevel(nil, gzip.BestSpeed)
-	if err != nil {
-		log.Fatal(err)
-	}
+type logger interface {
+	Info(msg string, keysAndValues ...interface{})
+	Error(msg string, keysAndValues ...interface{})
+	Fatal(msg string, keysAndValues ...interface{})
 }
 
 type gzipResponseWriter struct {
@@ -32,12 +27,13 @@ func (g *gzipResponseWriter) Write(data []byte) (int, error) {
 	return g.writer.Write(data)
 }
 
-func Gzip() gin.HandlerFunc {
+func Gzip(logger logger, gzipWriter *gzip.Writer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Decoding
 		if c.GetHeader("Content-Encoding") == "gzip" {
 			gr, err := gzip.NewReader(c.Request.Body)
 			if err != nil {
+				logger.Error(err.Error())
 				c.AbortWithStatus(http.StatusBadRequest)
 				return
 			}
@@ -45,6 +41,7 @@ func Gzip() gin.HandlerFunc {
 
 			bodyBytes, err := io.ReadAll(gr)
 			if err != nil {
+				logger.Error(err.Error())
 				c.AbortWithStatus(http.StatusBadRequest)
 				return
 			}
@@ -56,8 +53,9 @@ func Gzip() gin.HandlerFunc {
 		acceptEncoding := c.GetHeader("Accept-Encoding")
 		if strings.Contains(acceptEncoding, "gzip") {
 			if strings.Contains(contentType, gin.MIMEJSON) || strings.Contains(contentType, gin.MIMEHTML) {
+				logger.Info("gziping data")
 				c.Writer = &gzipResponseWriter{
-					writer:         gzWriter,
+					writer:         gzipWriter,
 					ResponseWriter: c.Writer,
 				}
 				c.Writer.Header().Set("Content-Encoding", "gzip")

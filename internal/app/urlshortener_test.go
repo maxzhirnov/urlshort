@@ -11,14 +11,14 @@ import (
 
 type mockStorage struct {
 	SaveFunc func(url models.ShortURL) error
-	GetFunc  func(id string) (models.ShortURL, error)
+	GetFunc  func(id string) (*models.ShortURL, error)
 }
 
 func (ms *mockStorage) Create(url models.ShortURL) error {
 	return ms.SaveFunc(url)
 }
 
-func (ms *mockStorage) Get(id string) (models.ShortURL, error) {
+func (ms *mockStorage) Get(id string) (*models.ShortURL, error) {
 	return ms.GetFunc(id)
 }
 
@@ -62,7 +62,7 @@ func Test_Create(t *testing.T) {
 					return nil
 				},
 			}
-			app := NewURLShortener(storage)
+			app := NewURLShortener(storage, NewRandIDGenerator(8))
 			actualID, actualErr := app.Create(tt.input)
 			assert.Equal(t, len(tt.want.id), len(actualID))
 			assert.Equal(t, tt.want.err, actualErr)
@@ -105,14 +105,14 @@ func Test_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := &mockStorage{
-				GetFunc: func(id string) (models.ShortURL, error) {
-					return models.ShortURL{
+				GetFunc: func(id string) (*models.ShortURL, error) {
+					return &models.ShortURL{
 						OriginalURL: "example.com",
 						ID:          id,
 					}, nil
 				},
 			}
-			app := NewURLShortener(storage)
+			app := NewURLShortener(storage, NewRandIDGenerator(8))
 			actualURL, actualErr := app.Get(tt.input)
 			assert.Equal(t, tt.want.url.OriginalURL, actualURL.OriginalURL)
 			assert.Equal(t, tt.want.url.ID, actualURL.ID)

@@ -1,4 +1,4 @@
-package repository
+package storages
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestSafeMap(t *testing.T) {
-	m := newSafeMap()
+	m := NewMemoryStorage()
 
 	type want struct {
 		id  string
