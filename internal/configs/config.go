@@ -89,8 +89,5 @@ func (c Config) FileStoragePath() string {
 }
 
 func (c Config) ShouldSaveToFile() bool {
-	if c.fileStoragePath != "" {
-		return true
-	}
-	return false
+	return c.fileStoragePath != ""
 }
