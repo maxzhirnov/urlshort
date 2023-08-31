@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"net/http"
@@ -9,21 +10,22 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/maxzhirnov/urlshort/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 type mockURLShortenerService struct {
 	CreateFunc func(originalURL string) (id string, err error)
-	GetFunc    func(id string) (url models.URL, err error)
+	GetFunc    func(id string) (url *models.ShortURL, err error)
 }
 
 func (m *mockURLShortenerService) Create(originalURL string) (string, error) {
 	return m.CreateFunc(originalURL)
 }
 
-func (m *mockURLShortenerService) Get(id string) (models.URL, error) {
+func (m *mockURLShortenerService) Get(id string) (*models.ShortURL, error) {
 	return m.GetFunc(id)
 }
 
@@ -31,8 +33,8 @@ var mockURLShortener = mockURLShortenerService{
 	CreateFunc: func(originalURL string) (id string, err error) {
 		return "", nil
 	},
-	GetFunc: func(id string) (url models.URL, err error) {
-		return models.URL{}, nil
+	GetFunc: func(id string) (url *models.ShortURL, err error) {
+		return &models.ShortURL{}, nil
 	},
 }
 
@@ -120,7 +122,7 @@ func Test_handleCreate(t *testing.T) {
 			m := &mockURLShortener
 			m.CreateFunc = tt.createFunc
 			handlers := NewShortenerHandlers(m, tt.redirectHost)
-			h := handlers.HandleCreate()
+			h := handlers.HandleCreate
 			h(c)
 
 			res := w.Result()
@@ -144,14 +146,16 @@ func Test_handleRedirect(t *testing.T) {
 		name    string
 		method  string
 		reqURL  string
-		getFunc func(id string) (models.URL, error)
+		getFunc func(id string) (*models.ShortURL, error)
 		want    want
 	}{
 		{
-			name:    "success test case",
-			method:  http.MethodGet,
-			reqURL:  "/12345678",
-			getFunc: func(id string) (models.URL, error) { return models.URL{OriginalURL: "ya.ru", ID: "12345678"}, nil },
+			name:   "success test case",
+			method: http.MethodGet,
+			reqURL: "/12345678",
+			getFunc: func(id string) (*models.ShortURL, error) {
+				return &models.ShortURL{OriginalURL: "ya.ru", ID: "12345678"}, nil
+			},
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
 				location:   "http://ya.ru",
@@ -161,7 +165,7 @@ func Test_handleRedirect(t *testing.T) {
 			name:    "test case error",
 			method:  http.MethodGet,
 			reqURL:  "/12345678",
-			getFunc: func(id string) (models.URL, error) { return models.URL{}, errors.New("error occurred") },
+			getFunc: func(id string) (*models.ShortURL, error) { return &models.ShortURL{}, errors.New("error occurred") },
 			want: want{
 				statusCode: http.StatusNotFound,
 				location:   "",
@@ -176,13 +180,74 @@ func Test_handleRedirect(t *testing.T) {
 			m := &mockURLShortener
 			m.GetFunc = tt.getFunc
 			handlers := NewShortenerHandlers(m, "")
-			h := handlers.HandleRedirect()
+			h := handlers.HandleRedirect
 			h(c)
 
 			res := w.Result()
 			defer res.Body.Close()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
+		})
+	}
+}
+
+func TestHandleShorten(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name           string
+		input          []byte
+		expectedStatus int
+		mockFunc       func(originalURL string) (id string, err error)
+	}{
+		{
+			name:           "invalid json",
+			input:          []byte(`{"invalid":"json"`),
+			expectedStatus: http.StatusBadRequest,
+			mockFunc:       mockURLShortener.CreateFunc,
+		},
+		{
+			name:           "short url",
+			input:          []byte(`{"URL": "ab"}`),
+			expectedStatus: http.StatusBadRequest,
+			mockFunc:       mockURLShortener.CreateFunc,
+		},
+		{
+			name:           "internal server error",
+			input:          []byte(`{"URL": "https://example.com"}`),
+			expectedStatus: http.StatusInternalServerError,
+			mockFunc: func(originalURL string) (id string, err error) {
+				return "", errors.New("mocked error")
+			},
+		},
+		{
+			name:           "successful shorten",
+			input:          []byte(`{"URL": "https://example.com"}`),
+			expectedStatus: http.StatusCreated,
+			mockFunc: func(originalURL string) (id string, err error) {
+				return "123456", nil
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			router := gin.Default()
+			mockService := &mockURLShortenerService{
+				CreateFunc: tt.mockFunc,
+			}
+			sh := &ShortenerHandlers{
+				service: mockService,
+				baseURL: "http://example.com",
+			}
+			router.POST("/shorten", sh.HandleShorten)
+
+			req, _ := http.NewRequest(http.MethodPost, "/shorten", bytes.NewReader(tt.input))
+			resp := httptest.NewRecorder()
+
+			router.ServeHTTP(resp, req)
+
+			assert.Equal(t, tt.expectedStatus, resp.Code)
 		})
 	}
 }

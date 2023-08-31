@@ -1,13 +1,15 @@
-package memorystorage
+package storages
 
 import (
-	"github.com/maxzhirnov/urlshort/internal/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
 func TestSafeMap(t *testing.T) {
-	m := NewSafeMap()
+	m := NewMemoryStorage()
 
 	type want struct {
 		id  string
@@ -16,13 +18,13 @@ func TestSafeMap(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		inputURL models.URL
+		inputURL models.ShortURL
 		inputID  string
 		want     want
 	}{
 		{
 			name: "good case",
-			inputURL: models.URL{
+			inputURL: models.ShortURL{
 				OriginalURL: "test.com",
 				ID:          "1",
 			},
@@ -34,7 +36,7 @@ func TestSafeMap(t *testing.T) {
 		},
 		{
 			name: "zero values",
-			inputURL: models.URL{
+			inputURL: models.ShortURL{
 				OriginalURL: "",
 				ID:          "",
 			},
