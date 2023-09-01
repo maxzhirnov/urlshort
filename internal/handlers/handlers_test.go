@@ -29,6 +29,10 @@ func (m *mockURLShortenerService) Get(id string) (*models.ShortURL, error) {
 	return m.GetFunc(id)
 }
 
+func (m *mockURLShortenerService) Ping() error {
+	return nil
+}
+
 var mockURLShortener = mockURLShortenerService{
 	CreateFunc: func(originalURL string) (id string, err error) {
 		return "", nil

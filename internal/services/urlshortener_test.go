@@ -22,6 +22,10 @@ func (ms *mockStorage) Get(id string) (*models.ShortURL, error) {
 	return ms.GetFunc(id)
 }
 
+func (ms *mockStorage) Ping() error {
+	return nil
+}
+
 func (ms *mockStorage) Close() error {
 	return nil
 }
