@@ -31,7 +31,7 @@ func NewFileStorage(filePath string) (*FileStorage, error) {
 	}, nil
 }
 
-func (fs *FileStorage) Store(url models.ShortURL) error {
+func (fs *FileStorage) Insert(url models.ShortURL) error {
 	data, err := json.Marshal(url)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (fs *FileStorage) Store(url models.ShortURL) error {
 	return nil
 }
 
-func (fs *FileStorage) Load(id string) (*models.ShortURL, bool) {
+func (fs *FileStorage) Get(id string) (*models.ShortURL, bool) {
 	_, err := fs.file.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, false
@@ -103,9 +103,13 @@ func (fs *FileStorage) InitializeData(memoryStorage *MemoryStorage) error {
 		return err
 	}
 	for _, u := range urls {
-		if err := memoryStorage.Store(u); err != nil {
+		if err := memoryStorage.Insert(u); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (fs *FileStorage) Ping() error {
 	return nil
 }

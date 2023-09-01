@@ -16,18 +16,22 @@ func NewCombinedStorage(safeMap *MemoryStorage, safeFile *FileStorage) *Combined
 	}
 }
 
-func (s *CombinedStorage) Store(url models.ShortURL) error {
-	if err := s.safeMap.Store(url); err != nil {
+func (s *CombinedStorage) Insert(url models.ShortURL) error {
+	if err := s.safeMap.Insert(url); err != nil {
 		return err
 	}
 
-	if err := s.safeFile.Store(url); err != nil {
+	if err := s.safeFile.Insert(url); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *CombinedStorage) Load(id string) (*models.ShortURL, bool) {
-	return s.safeMap.Load(id)
+func (s *CombinedStorage) Get(id string) (*models.ShortURL, bool) {
+	return s.safeMap.Get(id)
+}
+
+func (s *CombinedStorage) Ping() error {
+	return nil
 }

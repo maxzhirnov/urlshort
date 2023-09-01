@@ -4,8 +4,10 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/lLUP9gLO
+GET http://localhost:8080/jaOKLElz
 
+### ping
+GET http://localhost:8080/ping
 
 ### /api/shorten
 POST http://localhost:8080/api/shorten

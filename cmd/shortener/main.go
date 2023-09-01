@@ -8,12 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
-	"github.com/maxzhirnov/urlshort/internal/app"
 	"github.com/maxzhirnov/urlshort/internal/configs"
 	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"github.com/maxzhirnov/urlshort/internal/logging"
 	"github.com/maxzhirnov/urlshort/internal/middleware"
 	"github.com/maxzhirnov/urlshort/internal/repository"
+	"github.com/maxzhirnov/urlshort/internal/services"
 	"github.com/maxzhirnov/urlshort/internal/storages"
 )
 
@@ -30,12 +30,12 @@ func main() {
 		os.Exit(-1)
 	}
 
-	config, err := configs.NewFromFlags()
+	config, err := configs.NewFromFlags(logger)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 
-	logger.Info("Starting app",
+	logger.Info("Starting services",
 		"server_addr", config.ServerAddr(),
 		"base_url", config.BaseURL(),
 		"file_storage_path", config.FileStoragePath())
@@ -57,11 +57,20 @@ func main() {
 		storage = memoryStorage
 	}
 
-	repo := repository.NewRepository(logger, storage)
+	postgresDB, err := storages.NewPostgresql(config.PostgresConn())
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 
-	idGenerator := app.NewRandIDGenerator(8)
-	service := app.NewURLShortener(repo, idGenerator)
+	repo := repository.NewRepository(logger, storage)
+	postgresRepo := repository.NewRepository(logger, postgresDB)
+
+	idGenerator := services.NewRandIDGenerator(8)
+	service := services.NewURLShortener(repo, idGenerator)
+	serviceWithPostgres := services.NewURLShortener(postgresRepo, idGenerator)
+
 	shortenerHandlers := handlers.NewShortenerHandlers(service, config.BaseURL())
+	handlersWithPostgres := handlers.NewShortenerHandlers(serviceWithPostgres, config.BaseURL())
 
 	gin.SetMode(gin.ReleaseMode)
 
@@ -77,6 +86,7 @@ func main() {
 
 	r.GET("/:ID", shortenerHandlers.HandleRedirect)
 	r.POST("/", shortenerHandlers.HandleCreate)
+	r.GET("/ping", handlersWithPostgres.HandlePing)
 
 	api := r.Group("/api")
 	api.POST("/shorten", shortenerHandlers.HandleShorten)

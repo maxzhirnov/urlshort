@@ -17,7 +17,7 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (ms *MemoryStorage) Load(id string) (urlObject *models.ShortURL, ok bool) {
+func (ms *MemoryStorage) Get(id string) (urlObject *models.ShortURL, ok bool) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 	urlObject = &models.ShortURL{}
@@ -28,9 +28,13 @@ func (ms *MemoryStorage) Load(id string) (urlObject *models.ShortURL, ok bool) {
 	return urlObject, ok
 }
 
-func (ms *MemoryStorage) Store(url models.ShortURL) error {
+func (ms *MemoryStorage) Insert(url models.ShortURL) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 	ms.m[url.ID] = url.OriginalURL
+	return nil
+}
+
+func (ms *MemoryStorage) Ping() error {
 	return nil
 }

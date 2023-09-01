@@ -10,12 +10,14 @@ type logger interface {
 	Info(msg string, keysAndValues ...interface{})
 	Error(msg string, keysAndValues ...interface{})
 	Fatal(msg string, keysAndValues ...interface{})
+	Warn(msg string, keysAndValues ...interface{})
 }
 
-// Storage is an interface for Storage service for storing and loading the url data
+// Storage is an interface for Storage services for storing and loading the url data
 type Storage interface {
-	Store(models.ShortURL) error
-	Load(id string) (*models.ShortURL, bool)
+	Insert(models.ShortURL) error
+	Get(id string) (*models.ShortURL, bool)
+	Ping() error
 }
 
 // Repository save shortURL data in storages as well in persistentStorage if WithFileStorage()
@@ -34,17 +36,26 @@ func NewRepository(logger logger, storage Storage) *Repository {
 
 func (r *Repository) Create(url models.ShortURL) error {
 	// check for id collision
-	if _, ok := r.storage.Load(url.ID); ok {
+	if _, ok := r.storage.Get(url.ID); ok {
 		r.logger.Error("id collision while trying to crate new short url", "id", url.ID)
 		return fmt.Errorf("please try again")
 	}
-	return r.storage.Store(url)
+	return r.storage.Insert(url)
 }
 
 func (r *Repository) Get(id string) (*models.ShortURL, error) {
-	url, ok := r.storage.Load(id)
+	url, ok := r.storage.Get(id)
 	if !ok {
 		return nil, fmt.Errorf("id not found")
 	}
 	return url, nil
+}
+
+func (r *Repository) Ping() error {
+	err := r.storage.Ping()
+	if err != nil {
+		r.logger.Error(err.Error())
+		return err
+	}
+	return nil
 }

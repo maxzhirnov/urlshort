@@ -1,4 +1,4 @@
-package app
+package services
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 type repository interface {
 	Create(url models.ShortURL) error
 	Get(id string) (*models.ShortURL, error)
+	Ping() error
 }
 
 type idGenerator interface {
@@ -46,4 +47,8 @@ func (us URLShortener) Get(id string) (*models.ShortURL, error) {
 		return &models.ShortURL{}, errors.New("id shouldn't be empty string")
 	}
 	return us.Storage.Get(id)
+}
+
+func (us URLShortener) Ping() error {
+	return us.Storage.Ping()
 }

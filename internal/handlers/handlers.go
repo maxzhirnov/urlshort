@@ -8,21 +8,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/maxzhirnov/urlshort/internal/app"
 	"github.com/maxzhirnov/urlshort/internal/models"
+	"github.com/maxzhirnov/urlshort/internal/services"
 )
 
-type urlShortenerService interface {
+type Service interface {
 	Create(originalURL string) (id string, err error)
 	Get(id string) (url *models.ShortURL, err error)
+	Ping() error
 }
 
 type ShortenerHandlers struct {
-	service urlShortenerService
+	service Service
 	baseURL string
 }
 
-func NewShortenerHandlers(s urlShortenerService, baseURL string) *ShortenerHandlers {
+func NewShortenerHandlers(s Service, baseURL string) *ShortenerHandlers {
 	return &ShortenerHandlers{
 		service: s,
 		baseURL: baseURL,
@@ -69,7 +70,7 @@ func (sh *ShortenerHandlers) HandleRedirect(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusTemporaryRedirect, app.EnsureURLScheme(url.OriginalURL))
+	c.Redirect(http.StatusTemporaryRedirect, services.EnsureURLScheme(url.OriginalURL))
 }
 
 func (sh *ShortenerHandlers) HandleShorten(c *gin.Context) {
@@ -93,4 +94,13 @@ func (sh *ShortenerHandlers) HandleShorten(c *gin.Context) {
 	shortenURL := sh.baseURL + "/" + shortenID
 	response := models.ShortenResponse{Result: shortenURL}
 	c.JSON(http.StatusCreated, response)
+}
+
+func (sh *ShortenerHandlers) HandlePing(c *gin.Context) {
+	err := sh.service.Ping()
+	if err != nil {
+		c.String(http.StatusInternalServerError, "something went wrong")
+		return
+	}
+	c.String(http.StatusOK, "connected to database")
 }

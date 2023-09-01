@@ -50,8 +50,8 @@ func TestSafeMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m.Store(tt.inputURL)
-			urlObjLoaded, ok := m.Load(tt.inputID)
+			m.Insert(tt.inputURL)
+			urlObjLoaded, ok := m.Get(tt.inputID)
 
 			assert.Equal(t, tt.want.url, m.m[tt.inputID])
 			assert.Equal(t, tt.want.url, urlObjLoaded.OriginalURL)
