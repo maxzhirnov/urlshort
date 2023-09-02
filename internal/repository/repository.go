@@ -17,6 +17,7 @@ type logger interface {
 type Storage interface {
 	Insert(models.ShortURL) error
 	Get(id string) (*models.ShortURL, bool)
+	Close() error
 	Ping() error
 }
 
@@ -58,4 +59,8 @@ func (r *Repository) Ping() error {
 		return err
 	}
 	return nil
+}
+
+func (r *Repository) Close() error {
+	return r.Close()
 }

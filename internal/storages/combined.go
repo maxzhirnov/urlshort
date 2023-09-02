@@ -35,3 +35,7 @@ func (s *CombinedStorage) Get(id string) (*models.ShortURL, bool) {
 func (s *CombinedStorage) Ping() error {
 	return nil
 }
+
+func (s *CombinedStorage) Close() error {
+	return s.safeFile.Close()
+}

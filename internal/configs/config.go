@@ -132,6 +132,10 @@ func (c Config) ShouldSaveToFile() bool {
 	return c.fileStoragePath != ""
 }
 
+func (c Config) ShouldUsePostgres() bool {
+	return c.postgresConn != ""
+}
+
 func (c Config) PostgresConn() string {
 	return c.postgresConn
 }

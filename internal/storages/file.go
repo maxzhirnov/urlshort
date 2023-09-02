@@ -113,3 +113,7 @@ func (fs *FileStorage) InitializeData(memoryStorage *MemoryStorage) error {
 func (fs *FileStorage) Ping() error {
 	return nil
 }
+
+func (fs *FileStorage) Close() error {
+	return fs.file.Close()
+}

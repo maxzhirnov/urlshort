@@ -38,3 +38,7 @@ func (ms *MemoryStorage) Insert(url models.ShortURL) error {
 func (ms *MemoryStorage) Ping() error {
 	return nil
 }
+
+func (ms *MemoryStorage) Close() error {
+	return nil
+}
