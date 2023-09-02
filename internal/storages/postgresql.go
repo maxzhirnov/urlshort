@@ -19,15 +19,20 @@ func NewPostgresql(conn string) (*Postgresql, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := initTables(db); err != nil {
+		return nil, err
+	}
+
 	return &Postgresql{
 		DB: db,
 	}, nil
 }
 
-func (p Postgresql) Init() error {
+func initTables(db *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if _, err := p.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS short_urls (
+	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS short_urls (
 									  id varchar(20) NOT NULL,
 									  original_url varchar(450) NOT NULL,
 									  PRIMARY KEY (id));`); err != nil {
