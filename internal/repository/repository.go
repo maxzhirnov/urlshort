@@ -62,5 +62,5 @@ func (r *Repository) Ping() error {
 }
 
 func (r *Repository) Close() error {
-	return r.Close()
+	return r.storage.Close()
 }

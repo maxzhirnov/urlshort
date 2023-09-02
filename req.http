@@ -15,5 +15,5 @@ Content-Type: application/json
 Accept-Encoding: br,deflate,gzip,x-gzip
 
 {
-  "url": "ya.ru"
+  "url": "avito.ru"
 }

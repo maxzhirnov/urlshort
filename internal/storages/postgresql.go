@@ -50,12 +50,12 @@ func (p Postgresql) Get(id string) (*models.ShortURL, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	row := p.DB.QueryRowContext(ctx, `SELECT id, original_url FROM short_urls WHERE id=$1`, id)
-	shortUrl := models.ShortURL{}
-	err := row.Scan(&shortUrl.ID, &shortUrl.OriginalURL)
+	shortURL := models.ShortURL{}
+	err := row.Scan(&shortURL.ID, &shortURL.OriginalURL)
 	if err != nil {
 		return nil, false
 	}
-	return &shortUrl, true
+	return &shortURL, true
 }
 
 func (p Postgresql) Ping() error {
