@@ -21,6 +21,11 @@ type mockURLShortenerService struct {
 	GetFunc    func(id string) (url *models.ShortURL, err error)
 }
 
+func (m *mockURLShortenerService) CreateBatch(i []string) (ids []string, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *mockURLShortenerService) Create(originalURL string) (string, error) {
 	return m.CreateFunc(originalURL)
 }
@@ -125,7 +130,7 @@ func Test_handleCreate(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			m := &mockURLShortener
 			m.CreateFunc = tt.createFunc
-			handlers := NewShortenerHandlers(m, tt.redirectHost)
+			handlers := NewHandlers(m, tt.redirectHost, nil)
 			h := handlers.HandleCreate
 			h(c)
 
@@ -183,7 +188,7 @@ func Test_handleRedirect(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, tt.reqURL, nil)
 			m := &mockURLShortener
 			m.GetFunc = tt.getFunc
-			handlers := NewShortenerHandlers(m, "")
+			handlers := NewHandlers(m, "", nil)
 			h := handlers.HandleRedirect
 			h(c)
 
@@ -240,7 +245,7 @@ func TestHandleShorten(t *testing.T) {
 			mockService := &mockURLShortenerService{
 				CreateFunc: tt.mockFunc,
 			}
-			sh := &ShortenerHandlers{
+			sh := &Handlers{
 				service: mockService,
 				baseURL: "http://example.com",
 			}

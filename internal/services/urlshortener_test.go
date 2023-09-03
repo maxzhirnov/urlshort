@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -14,12 +15,21 @@ type mockStorage struct {
 	GetFunc  func(id string) (*models.ShortURL, error)
 }
 
-func (ms *mockStorage) Create(url models.ShortURL) error {
+func (ms *mockStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ms *mockStorage) Insert(ctx context.Context, url models.ShortURL) error {
 	return ms.SaveFunc(url)
 }
 
-func (ms *mockStorage) Get(id string) (*models.ShortURL, error) {
+func (ms *mockStorage) Get(ctx context.Context, id string) (*models.ShortURL, error) {
 	return ms.GetFunc(id)
+}
+
+func (ms *mockStorage) Bootstrap(ctx context.Context) error {
+	return nil
 }
 
 func (ms *mockStorage) Ping() error {
@@ -66,7 +76,7 @@ func Test_Create(t *testing.T) {
 					return nil
 				},
 			}
-			app := NewURLShortener(storage, NewRandIDGenerator(8))
+			app := NewURLShortener(storage, NewRandIDGenerator(8), nil)
 			actualID, actualErr := app.Create(tt.input)
 			assert.Equal(t, len(tt.want.id), len(actualID))
 			assert.Equal(t, tt.want.err, actualErr)
@@ -116,7 +126,7 @@ func Test_Get(t *testing.T) {
 					}, nil
 				},
 			}
-			app := NewURLShortener(storage, NewRandIDGenerator(8))
+			app := NewURLShortener(storage, NewRandIDGenerator(8), nil)
 			actualURL, actualErr := app.Get(tt.input)
 			assert.Equal(t, tt.want.url.OriginalURL, actualURL.OriginalURL)
 			assert.Equal(t, tt.want.url.ID, actualURL.ID)

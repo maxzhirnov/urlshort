@@ -2,8 +2,10 @@ package main
 
 import (
 	"compress/gzip"
+	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -32,7 +34,7 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
-	logger.Info("Starting services",
+	logger.Info("Starting app",
 		"server_addr", config.ServerAddr(),
 		"base_url", config.BaseURL(),
 		"file_storage_path", config.FileStoragePath())
@@ -43,10 +45,16 @@ func main() {
 	}
 	defer storage.Close()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := storage.Bootstrap(ctx); err != nil {
+		logger.Fatal(err.Error())
+	}
+
 	repo := repository.NewRepository(logger, storage)
 	idGenerator := services.NewRandIDGenerator(8)
-	service := services.NewURLShortener(repo, idGenerator)
-	shortenerHandlers := handlers.NewShortenerHandlers(service, config.BaseURL())
+	service := services.NewURLShortener(repo, idGenerator, logger)
+	handler := handlers.NewHandlers(service, config.BaseURL(), logger)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -57,12 +65,13 @@ func main() {
 	}
 	r.Use(middleware.Gzip(logger, gzipWriter))
 
-	r.GET("/:ID", shortenerHandlers.HandleRedirect)
-	r.POST("/", shortenerHandlers.HandleCreate)
-	r.GET("/ping", shortenerHandlers.HandlePing)
+	r.GET("/:ID", handler.HandleRedirect)
+	r.POST("/", handler.HandleCreate)
+	r.GET("/ping", handler.HandlePing)
 
 	api := r.Group("/api")
-	api.POST("/shorten", shortenerHandlers.HandleShorten)
+	api.POST("/shorten", handler.HandleShorten)
+	api.POST("/shorten/batch", handler.HandleShortenBatch)
 
 	if err := r.Run(config.ServerAddr()); err != nil {
 		logger.Fatal("Couldn't start server",

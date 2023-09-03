@@ -34,7 +34,7 @@ func TestGzipMiddleware(t *testing.T) {
 		c.String(http.StatusOK, "response body")
 	})
 
-	// Create a gzip compressed request body
+	// Insert a gzip compressed request body
 	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
 	if _, err := gz.Write([]byte("test body")); err != nil {

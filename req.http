@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/POFVMTsK
+GET http://localhost:8080/K0i14KKW
 
 ### ping
 GET http://localhost:8080/ping
@@ -15,5 +15,22 @@ Content-Type: application/json
 Accept-Encoding: br,deflate,gzip,x-gzip
 
 {
-  "url": "avito.ru"
+  "url": "mzhirnov.com"
 }
+
+
+### api/shorten/batch
+POST http://localhost:8080/api/shorten/batch
+Content-Type: application/json
+Accept-Encoding: br,deflate,gzip,x-gzip
+
+[
+  {
+    "correlation_id": "123456",
+    "original_url": "ya.ru"
+  },
+  {
+    "correlation_id": "234567",
+    "original_url": "google.com"
+  }
+]
