@@ -6,19 +6,25 @@ import (
 	"time"
 
 	"github.com/maxzhirnov/urlshort/internal/models"
+	"github.com/maxzhirnov/urlshort/internal/repositories"
+)
+
+var (
+	ErrEntityAlreadyExist = errors.New("entity already exist")
 )
 
 type logger interface {
-	Info(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	Fatal(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
+	Info(string, ...interface{})
+	Error(string, ...interface{})
+	Fatal(string, ...interface{})
+	Warn(string, ...interface{})
+	Debug(string, ...interface{})
 }
 
 type repository interface {
-	Insert(context.Context, models.ShortURL) error
+	Insert(context.Context, models.ShortURL) (models.ShortURL, error)
 	InsertMany(context.Context, []models.ShortURL) error
-	Get(ctx context.Context, id string) (*models.ShortURL, error)
+	Get(ctx context.Context, id string) (models.ShortURL, error)
 	Ping() error
 }
 
@@ -40,27 +46,34 @@ func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *U
 	}
 }
 
-func (us URLShortener) Create(originalURL string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (us URLShortener) Create(originalURL string) (models.ShortURL, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	urlShorten := models.ShortURL{
 		OriginalURL: originalURL,
 		ID:          us.IDGenerator.Generate(),
 	}
 	if originalURL == "" {
-		return "", errors.New("originalURL shouldn't be empty string")
+		return models.ShortURL{}, errors.New("originalURL shouldn't be empty string")
 	}
-	if err := us.Repo.Insert(ctx, urlShorten); err != nil {
-		return "", err
+	insertedURL, err := us.Repo.Insert(ctx, urlShorten)
+
+	if err != nil {
+		switch {
+		default:
+			return models.ShortURL{}, err
+		case errors.Is(err, repositories.ErrEntityAlreadyExist):
+			return insertedURL, ErrEntityAlreadyExist
+		}
 	}
-	return urlShorten.ID, nil
+	return insertedURL, nil
 }
 
-func (us URLShortener) Get(id string) (*models.ShortURL, error) {
+func (us URLShortener) Get(id string) (models.ShortURL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if id == "" {
-		return &models.ShortURL{}, errors.New("id shouldn't be empty string")
+		return models.ShortURL{}, errors.New("id shouldn't be empty string")
 	}
 	return us.Repo.Get(ctx, id)
 }

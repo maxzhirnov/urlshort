@@ -18,16 +18,16 @@ func NewCombinedStorage(safeMap *MemoryStorage, safeFile *FileStorage) *Combined
 	}
 }
 
-func (s *CombinedStorage) Insert(ctx context.Context, url models.ShortURL) error {
-	if err := s.safeMap.Insert(context.Background(), url); err != nil {
-		return err
+func (s *CombinedStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
+	if _, err := s.safeMap.Insert(context.Background(), url); err != nil {
+		return models.ShortURL{}, err
 	}
 
-	if err := s.safeFile.Insert(context.Background(), url); err != nil {
-		return err
+	if _, err := s.safeFile.Insert(context.Background(), url); err != nil {
+		return models.ShortURL{}, err
 	}
 
-	return nil
+	return url, nil
 }
 
 func (s *CombinedStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
@@ -42,7 +42,7 @@ func (s *CombinedStorage) InsertMany(ctx context.Context, urls []models.ShortURL
 	return nil
 }
 
-func (s *CombinedStorage) Get(ctx context.Context, id string) (*models.ShortURL, bool) {
+func (s *CombinedStorage) Get(ctx context.Context, id string) (models.ShortURL, bool) {
 	return s.safeMap.Get(context.Background(), id)
 }
 

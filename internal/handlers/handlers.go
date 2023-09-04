@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,16 +14,17 @@ import (
 )
 
 type logger interface {
-	Info(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	Fatal(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
+	Info(string, ...interface{})
+	Error(string, ...interface{})
+	Fatal(string, ...interface{})
+	Warn(string, ...interface{})
+	Debug(string, ...interface{})
 }
 
 type Service interface {
-	Create(originalURL string) (id string, err error)
+	Create(originalURL string) (models.ShortURL, error)
 	CreateBatch([]string) (ids []string, err error)
-	Get(id string) (url *models.ShortURL, err error)
+	Get(id string) (url models.ShortURL, err error)
 	Ping() error
 }
 
@@ -54,17 +56,23 @@ func (h *Handlers) HandleCreate(c *gin.Context) {
 	}
 
 	originalHost := string(data)
+	statusCode := http.StatusCreated
+	shortenURLObject, err := h.service.Create(originalHost)
 
-	id, err := h.service.Create(originalHost)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "error creating shorten url")
-		return
+		switch {
+		default:
+			c.String(http.StatusInternalServerError, "error creating shorten url")
+			return
+		case errors.Is(err, services.ErrEntityAlreadyExist):
+			statusCode = http.StatusConflict
+		}
 	}
 
-	shortenURL := fmt.Sprintf("%s/%s", h.baseURL, id)
+	shortenURL := fmt.Sprintf("%s/%s", h.baseURL, shortenURLObject.ID)
 
 	c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.WriteHeader(statusCode)
 	//Отдаем в body ссылку на сокращенный url
 	if _, err := c.Writer.Write([]byte(shortenURL)); err != nil {
 		c.String(http.StatusInternalServerError, "something went wrong")
@@ -99,20 +107,24 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 		return
 	}
 
-	shortenID, err := h.service.Create(reqData.URL)
+	statusCode := http.StatusCreated
+	shortenURLObject, err := h.service.Create(reqData.URL)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
-		return
+		switch {
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+			return
+		case errors.Is(err, services.ErrEntityAlreadyExist):
+			statusCode = http.StatusConflict
+		}
 	}
-	shortenURL := h.baseURL + "/" + shortenID
 
 	response := struct {
 		Result string `json:"result"`
 	}{
-		Result: shortenURL,
+		Result: h.baseURL + "/" + shortenURLObject.ID,
 	}
-
-	c.JSON(http.StatusCreated, response)
+	c.JSON(statusCode, response)
 }
 
 func (h *Handlers) HandleShortenBatch(c *gin.Context) {
@@ -122,7 +134,7 @@ func (h *Handlers) HandleShortenBatch(c *gin.Context) {
 	}, 0)
 
 	if err := json.NewDecoder(c.Request.Body).Decode(&request); err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("error decoding json", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
 	}
@@ -135,7 +147,7 @@ func (h *Handlers) HandleShortenBatch(c *gin.Context) {
 
 	ids, err := h.service.CreateBatch(urlsToShort)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("error creating batch", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 		return
 	}

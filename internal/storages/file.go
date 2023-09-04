@@ -34,46 +34,46 @@ func NewFileStorage(filePath string) (*FileStorage, error) {
 	}, nil
 }
 
-func (s *FileStorage) Insert(ctx context.Context, url models.ShortURL) error {
+func (s *FileStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	data, err := json.Marshal(url)
 	if err != nil {
-		return err
+		return models.ShortURL{}, err
 	}
 
 	if _, err := s.writer.Write(data); err != nil {
-		return err
+		return models.ShortURL{}, err
 	}
 
 	if err := s.writer.WriteByte('\n'); err != nil {
-		return err
+		return models.ShortURL{}, err
 	}
 
 	err = s.writer.Flush()
 	if err != nil {
-		return err
+		return models.ShortURL{}, err
 	}
-	return nil
+	return url, nil
 }
 
 func (s *FileStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
 	for _, url := range urls {
-		if err := s.Insert(ctx, url); err != nil {
+		if _, err := s.Insert(ctx, url); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *FileStorage) Get(ctx context.Context, id string) (*models.ShortURL, bool) {
+func (s *FileStorage) Get(ctx context.Context, id string) (models.ShortURL, bool) {
 	_, err := s.file.Seek(0, io.SeekStart)
 	if err != nil {
-		return nil, false
+		return models.ShortURL{}, false
 	}
 	s.scanner = bufio.NewScanner(s.file)
 	for s.scanner.Scan() {
-		var shortURL *models.ShortURL
+		var shortURL models.ShortURL
 		err := json.Unmarshal(s.scanner.Bytes(), &shortURL)
 		if err != nil {
 			continue
@@ -85,10 +85,10 @@ func (s *FileStorage) Get(ctx context.Context, id string) (*models.ShortURL, boo
 	}
 
 	if err := s.scanner.Err(); err != nil {
-		return nil, false
+		return models.ShortURL{}, false
 	}
 
-	return &models.ShortURL{}, false
+	return models.ShortURL{}, false
 }
 
 func (s *FileStorage) Bootstrap(ctx context.Context) error {
@@ -110,7 +110,7 @@ func (s *FileStorage) initializeData(memoryStorage *MemoryStorage) error {
 		return err
 	}
 	for _, u := range urls {
-		if err := memoryStorage.Insert(context.Background(), u); err != nil {
+		if _, err := memoryStorage.Insert(context.Background(), u); err != nil {
 			return err
 		}
 	}

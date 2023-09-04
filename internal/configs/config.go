@@ -6,10 +6,11 @@ import (
 )
 
 type logger interface {
-	Info(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	Fatal(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
+	Info(string, ...interface{})
+	Error(string, ...interface{})
+	Fatal(string, ...interface{})
+	Warn(string, ...interface{})
+	Debug(string, ...interface{})
 }
 
 const (
@@ -83,28 +84,28 @@ func NewFromFlags(logger logger) (*Config, error) {
 		WithPostgresConn(postgresConn)
 
 	if v, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
-		logger.Info("successfully parsed SERVER_ADDRESS from env")
+		logger.Debug("successfully parsed SERVER_ADDRESS from env")
 		builder.WithServerAddr(v)
 	} else {
 		logger.Warn("couldn't parse SERVER_ADDRESS from env")
 	}
 
 	if v, ok := os.LookupEnv("BASE_URL"); ok {
-		logger.Info("successfully parsed BASE_URL from env")
+		logger.Debug("successfully parsed BASE_URL from env")
 		builder.WithBaseURL(v)
 	} else {
 		logger.Warn("couldn't parse BASE_URL from env")
 	}
 
 	if v, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
-		logger.Info("successfully parsed FILE_STORAGE_PATH from env")
+		logger.Debug("successfully parsed FILE_STORAGE_PATH from env")
 		builder.WithFileStoragePath(v)
 	} else {
 		logger.Warn("couldn't parse FILE_STORAGE_PATH from env")
 	}
 
 	if v, ok := os.LookupEnv("POSTGRES_CONN"); ok {
-		logger.Info("successfully parsed POSTGRES_CONN from env")
+		logger.Debug("successfully parsed POSTGRES_CONN from env")
 		builder.WithPostgresConn(v)
 	} else {
 		logger.Warn("couldn't parse POSTGRES_CONN from env")

@@ -18,27 +18,28 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) Get(ctx context.Context, id string) (urlObject *models.ShortURL, ok bool) {
+func (s *MemoryStorage) Get(ctx context.Context, id string) (models.ShortURL, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	urlObject = &models.ShortURL{}
-	urlObject.OriginalURL, ok = s.m[id]
+	url := models.ShortURL{}
+	var ok bool
+	url.OriginalURL, ok = s.m[id]
 	if ok {
-		urlObject.ID = id
+		url.ID = id
 	}
-	return urlObject, ok
+	return url, ok
 }
 
-func (s *MemoryStorage) Insert(ctx context.Context, url models.ShortURL) error {
+func (s *MemoryStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.m[url.ID] = url.OriginalURL
-	return nil
+	return url, nil
 }
 
 func (s *MemoryStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
 	for _, url := range urls {
-		if err := s.Insert(ctx, url); err != nil {
+		if _, err := s.Insert(ctx, url); err != nil {
 			return err
 		}
 	}

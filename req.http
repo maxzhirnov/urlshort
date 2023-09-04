@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/K0i14KKW
+GET http://localhost:8080/UsI09awt
 
 ### ping
 GET http://localhost:8080/ping
@@ -15,7 +15,7 @@ Content-Type: application/json
 Accept-Encoding: br,deflate,gzip,x-gzip
 
 {
-  "url": "mzhirnov.com"
+  "url": "reddit.com"
 }
 
 

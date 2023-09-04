@@ -4,17 +4,17 @@ import (
 	"compress/gzip"
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 
 	"github.com/maxzhirnov/urlshort/internal/configs"
 	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"github.com/maxzhirnov/urlshort/internal/logging"
 	"github.com/maxzhirnov/urlshort/internal/middleware"
-	"github.com/maxzhirnov/urlshort/internal/repository"
+	"github.com/maxzhirnov/urlshort/internal/repositories"
 	"github.com/maxzhirnov/urlshort/internal/services"
 )
 
@@ -23,11 +23,7 @@ func main() {
 		log.Println(".env file parsing failed")
 	}
 
-	logger, err := logging.NewZapSugared()
-	if err != nil {
-		log.Println(err)
-		os.Exit(-1)
-	}
+	logger := logging.NewLogrusLogger(logrus.DebugLevel)
 
 	config, err := configs.NewFromFlags(logger)
 	if err != nil {
@@ -39,7 +35,7 @@ func main() {
 		"base_url", config.BaseURL(),
 		"file_storage_path", config.FileStoragePath())
 
-	storage, err := repository.NewStorage(*config)
+	storage, err := repositories.NewStorage(*config)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -51,7 +47,7 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
-	repo := repository.NewRepository(logger, storage)
+	repo := repositories.NewRepository(logger, storage)
 	idGenerator := services.NewRandIDGenerator(8)
 	service := services.NewURLShortener(repo, idGenerator, logger)
 	handler := handlers.NewHandlers(service, config.BaseURL(), logger)

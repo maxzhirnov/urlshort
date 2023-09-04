@@ -51,7 +51,7 @@ func TestSafeMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := m.Insert(context.Background(), tt.inputURL)
+			_, err := m.Insert(context.Background(), tt.inputURL)
 			if err != nil {
 				return
 			}

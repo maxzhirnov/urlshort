@@ -14,9 +14,15 @@ import (
 
 type mockLogger struct{}
 
+func (l mockLogger) Warn(s string, i ...interface{}) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (l mockLogger) Info(msg string, keysAndValues ...interface{})  {}
 func (l mockLogger) Error(msg string, keysAndValues ...interface{}) {}
 func (l mockLogger) Fatal(msg string, keysAndValues ...interface{}) {}
+func (l mockLogger) Debug(msg string, keysAndValues ...interface{}) {}
 
 func TestGzipMiddleware(t *testing.T) {
 	gzipWriter, err := gzip.NewWriterLevel(nil, gzip.BestSpeed)

@@ -11,9 +11,11 @@ import (
 )
 
 type logger interface {
-	Info(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	Fatal(msg string, keysAndValues ...interface{})
+	Info(string, ...interface{})
+	Error(string, ...interface{})
+	Fatal(string, ...interface{})
+	Warn(string, ...interface{})
+	Debug(string, ...interface{})
 }
 
 type gzipResponseWriter struct {
