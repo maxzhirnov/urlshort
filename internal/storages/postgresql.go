@@ -27,7 +27,6 @@ func NewPostgresql(conn string) (*Postgresql, error) {
 }
 
 func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (models.ShortURL, error) {
-
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		tx.Rollback()
@@ -40,6 +39,9 @@ func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (model
 	ON CONFLICT (original_url) DO UPDATE SET updated_at = NOW()
 	RETURNING *, (xmax = 0) AS is_inserted;
 	`)
+	if err != nil {
+		return models.ShortURL{}, err
+	}
 	defer stmt.Close()
 
 	row := stmt.QueryRowContext(ctx, shortURL.ID, shortURL.OriginalURL)
