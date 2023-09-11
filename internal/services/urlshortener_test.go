@@ -1,6 +1,7 @@
-package app
+package services
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -10,16 +11,29 @@ import (
 )
 
 type mockStorage struct {
-	SaveFunc func(url models.ShortURL) error
-	GetFunc  func(id string) (*models.ShortURL, error)
+	SaveFunc func(url models.ShortURL) (models.ShortURL, error)
+	GetFunc  func(id string) (models.ShortURL, error)
 }
 
-func (ms *mockStorage) Create(url models.ShortURL) error {
+func (ms *mockStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ms *mockStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
 	return ms.SaveFunc(url)
 }
 
-func (ms *mockStorage) Get(id string) (*models.ShortURL, error) {
+func (ms *mockStorage) Get(ctx context.Context, id string) (models.ShortURL, error) {
 	return ms.GetFunc(id)
+}
+
+func (ms *mockStorage) Bootstrap(ctx context.Context) error {
+	return nil
+}
+
+func (ms *mockStorage) Ping() error {
+	return nil
 }
 
 func (ms *mockStorage) Close() error {
@@ -58,13 +72,13 @@ func Test_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := &mockStorage{
-				SaveFunc: func(url models.ShortURL) error {
-					return nil
+				SaveFunc: func(url models.ShortURL) (models.ShortURL, error) {
+					return url, nil
 				},
 			}
-			app := NewURLShortener(storage, NewRandIDGenerator(8))
-			actualID, actualErr := app.Create(tt.input)
-			assert.Equal(t, len(tt.want.id), len(actualID))
+			app := NewURLShortener(storage, NewRandIDGenerator(8), nil)
+			actualURL, actualErr := app.Create(tt.input)
+			assert.Equal(t, len(tt.want.id), len(actualURL.ID))
 			assert.Equal(t, tt.want.err, actualErr)
 		})
 	}
@@ -105,14 +119,14 @@ func Test_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := &mockStorage{
-				GetFunc: func(id string) (*models.ShortURL, error) {
-					return &models.ShortURL{
+				GetFunc: func(id string) (models.ShortURL, error) {
+					return models.ShortURL{
 						OriginalURL: "example.com",
 						ID:          id,
 					}, nil
 				},
 			}
-			app := NewURLShortener(storage, NewRandIDGenerator(8))
+			app := NewURLShortener(storage, NewRandIDGenerator(8), nil)
 			actualURL, actualErr := app.Get(tt.input)
 			assert.Equal(t, tt.want.url.OriginalURL, actualURL.OriginalURL)
 			assert.Equal(t, tt.want.url.ID, actualURL.ID)

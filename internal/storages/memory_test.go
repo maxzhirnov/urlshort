@@ -1,6 +1,7 @@
 package storages
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -50,8 +51,11 @@ func TestSafeMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m.Store(tt.inputURL)
-			urlObjLoaded, ok := m.Load(tt.inputID)
+			_, err := m.Insert(context.Background(), tt.inputURL)
+			if err != nil {
+				return
+			}
+			urlObjLoaded, ok := m.Get(context.Background(), tt.inputID)
 
 			assert.Equal(t, tt.want.url, m.m[tt.inputID])
 			assert.Equal(t, tt.want.url, urlObjLoaded.OriginalURL)

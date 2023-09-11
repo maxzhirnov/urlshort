@@ -18,14 +18,22 @@ func NewZapSugared() (*ZapSugaredAdapter, error) {
 	}, nil
 }
 
+func (z *ZapSugaredAdapter) Debug(msg string, keysAndValues ...interface{}) {
+	z.SugaredLogger.Debugln(msg, keysAndValues)
+}
+
 func (z *ZapSugaredAdapter) Info(msg string, keysAndValues ...interface{}) {
-	z.SugaredLogger.Infow(msg, keysAndValues...)
+	z.SugaredLogger.Infoln(msg, keysAndValues)
 }
 
 func (z *ZapSugaredAdapter) Error(msg string, keysAndValues ...interface{}) {
-	z.SugaredLogger.Errorw(msg, keysAndValues...)
+	z.SugaredLogger.Errorln(msg, keysAndValues)
 }
 
 func (z *ZapSugaredAdapter) Fatal(msg string, keysAndValues ...interface{}) {
-	z.SugaredLogger.Fatalw(msg, keysAndValues...)
+	z.SugaredLogger.Fatalln(msg, keysAndValues)
+}
+
+func (z *ZapSugaredAdapter) Warn(msg string, keysAndValues ...interface{}) {
+	z.SugaredLogger.Warnln(msg, keysAndValues)
 }

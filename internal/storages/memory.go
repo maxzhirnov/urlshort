@@ -1,6 +1,7 @@
 package storages
 
 import (
+	"context"
 	"sync"
 
 	"github.com/maxzhirnov/urlshort/internal/models"
@@ -17,20 +18,42 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (ms *MemoryStorage) Load(id string) (urlObject *models.ShortURL, ok bool) {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-	urlObject = &models.ShortURL{}
-	urlObject.OriginalURL, ok = ms.m[id]
+func (s *MemoryStorage) Get(ctx context.Context, id string) (models.ShortURL, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	url := models.ShortURL{}
+	var ok bool
+	url.OriginalURL, ok = s.m[id]
 	if ok {
-		urlObject.ID = id
+		url.ID = id
 	}
-	return urlObject, ok
+	return url, ok
 }
 
-func (ms *MemoryStorage) Store(url models.ShortURL) error {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-	ms.m[url.ID] = url.OriginalURL
+func (s *MemoryStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.m[url.ID] = url.OriginalURL
+	return url, nil
+}
+
+func (s *MemoryStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+	for _, url := range urls {
+		if _, err := s.Insert(ctx, url); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *MemoryStorage) Bootstrap(ctx context.Context) error {
+	return nil
+}
+
+func (s *MemoryStorage) Ping() error {
+	return nil
+}
+
+func (s *MemoryStorage) Close() error {
 	return nil
 }
