@@ -72,7 +72,7 @@ func (s Postgresql) InsertMany(ctx context.Context, urls []models.ShortURL) erro
 		return err
 	}
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_urls(id, original_url) VALUES ($1, $2)")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_urls(id, original_url) VALUES ($1, $2) ON CONFLICT DO NOTHING ")
 	if err != nil {
 		tx.Rollback()
 		return err

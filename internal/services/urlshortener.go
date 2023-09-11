@@ -47,7 +47,7 @@ func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *U
 }
 
 func (us URLShortener) Create(originalURL string) (models.ShortURL, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	urlShorten := models.ShortURL{
 		OriginalURL: originalURL,
@@ -58,14 +58,14 @@ func (us URLShortener) Create(originalURL string) (models.ShortURL, error) {
 	}
 	insertedURL, err := us.Repo.Insert(ctx, urlShorten)
 
-	if err != nil {
-		switch {
-		default:
-			return models.ShortURL{}, err
-		case errors.Is(err, repositories.ErrEntityAlreadyExist):
-			return insertedURL, ErrEntityAlreadyExist
-		}
+	if errors.Is(err, repositories.ErrEntityAlreadyExist) {
+		return insertedURL, ErrEntityAlreadyExist
 	}
+
+	if err != nil {
+		return models.ShortURL{}, err
+	}
+
 	return insertedURL, nil
 }
 

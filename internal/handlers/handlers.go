@@ -21,7 +21,7 @@ type logger interface {
 	Debug(string, ...interface{})
 }
 
-type Service interface {
+type service interface {
 	Create(originalURL string) (models.ShortURL, error)
 	CreateBatch([]string) (ids []string, err error)
 	Get(id string) (url models.ShortURL, err error)
@@ -29,12 +29,12 @@ type Service interface {
 }
 
 type Handlers struct {
-	service Service
+	service service
 	baseURL string
 	logger  logger
 }
 
-func NewHandlers(s Service, baseURL string, logger logger) *Handlers {
+func NewHandlers(s service, baseURL string, logger logger) *Handlers {
 	return &Handlers{
 		service: s,
 		baseURL: baseURL,
