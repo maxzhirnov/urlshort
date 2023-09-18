@@ -30,7 +30,7 @@ func TestGzipMiddleware(t *testing.T) {
 		t.Error(err)
 	}
 	r := gin.Default()
-	r.Use(GzipMiddleware(&mockLogger{}, gzipWriter))
+	r.Use(GzipMiddleware(gzipWriter, &mockLogger{}))
 
 	r.POST("/test", func(c *gin.Context) {
 		buf := new(bytes.Buffer)
