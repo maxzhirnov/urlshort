@@ -93,7 +93,7 @@ func (s *FileStorage) GetURLByID(ctx context.Context, id string) (models.ShortUR
 }
 
 func (s *FileStorage) GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool) {
-	panic(fmt.Errorf("Not implemented"))
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (s *FileStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {

@@ -61,14 +61,24 @@ func (h *Handlers) HandleCreate(c *gin.Context) {
 
 	originalURL := string(originalURLData)
 
-	jwtToken, err := c.Cookie("jwt_token")
-	var userID string
-	if err == nil {
-		userID, err = h.auth.ValidateToken(jwtToken)
+	jwtToken := ""
+	// Пытаемся получить jwtToken из контекста
+	if tempToken, exists := c.Get("jwt_token"); exists {
+		jwtToken = tempToken.(string)
+	} else {
+		// Если токена нет в контексте, пытаемся получить его из куки
+		jwtToken, err = c.Cookie("jwt_token")
 		if err != nil {
 			c.String(http.StatusUnauthorized, "unauthorized")
 			return
 		}
+	}
+
+	var userID string
+	userID, err = h.auth.ValidateToken(jwtToken)
+	if err != nil {
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
 	}
 
 	statusCode := http.StatusCreated
@@ -119,14 +129,25 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 		return
 	}
 
-	jwtToken, err := c.Cookie("jwt_token")
-	var userID string
-	if err == nil {
-		userID, err = h.auth.ValidateToken(jwtToken)
+	jwtToken := ""
+	var err error
+	// Пытаемся получить jwtToken из контекста
+	if tempToken, exists := c.Get("jwt_token"); exists {
+		jwtToken = tempToken.(string)
+	} else {
+		// Если токена нет в контексте, пытаемся получить его из куки
+		jwtToken, err = c.Cookie("jwt_token")
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			c.String(http.StatusUnauthorized, "unauthorized")
 			return
 		}
+	}
+
+	var userID string
+	userID, err = h.auth.ValidateToken(jwtToken)
+	if err != nil {
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
 	}
 
 	statusCode := http.StatusCreated
@@ -162,12 +183,26 @@ func (h *Handlers) HandleShortenBatch(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
-	jwtToken, err := c.Cookie("jwt_token")
+	jwtToken := ""
+	var err error
+	// Пытаемся получить jwtToken из контекста
+	if tempToken, exists := c.Get("jwt_token"); exists {
+		jwtToken = tempToken.(string)
+	} else {
+		// Если токена нет в контексте, пытаемся получить его из куки
+		jwtToken, err = c.Cookie("jwt_token")
+		if err != nil {
+			c.String(http.StatusUnauthorized, "unauthorized")
+			return
+		}
+	}
+
+	var userID string
+	userID, err = h.auth.ValidateToken(jwtToken)
 	if err != nil {
 		c.String(http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	userID, err := h.auth.ValidateToken(jwtToken)
 
 	urlsToShort := make([]string, 0)
 	for _, u := range request {
@@ -222,10 +257,18 @@ func (h *Handlers) HandleShowAllUsersURLs(c *gin.Context) {
 		return
 	}
 	userID, err := h.auth.ValidateToken(jwtToken)
+	if err != nil {
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
+	}
 
 	userURLs, err := h.service.GetAllUsersURLs(userID)
 	if len(userURLs) == 0 {
 		c.JSON(http.StatusNoContent, "empty")
+		return
+	}
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 

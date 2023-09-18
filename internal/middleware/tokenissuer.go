@@ -30,6 +30,7 @@ func TokenIssuerMiddleware(a *auth.Auth, l logger) gin.HandlerFunc {
 		}
 
 		c.SetCookie("jwt_token", jwtToken, 3600*24*365, "/", "localhost", false, true)
+		c.Set("jwt_token", jwtToken)
 		c.Next()
 	}
 }

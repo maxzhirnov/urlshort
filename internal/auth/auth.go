@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
-const TOKEN_EXP = time.Hour * 24 * 365
-const SECRET_KEY = "supersecretkey"
+const tokenExp = time.Hour * 24 * 365
+const secretKey = "supersecretkey"
 
 type claims struct {
 	jwt.RegisteredClaims
@@ -22,8 +22,8 @@ type Auth struct {
 }
 
 func NewAuth() *Auth {
-	secretKey := SECRET_KEY
-	if parsedSecretKey, exist := os.LookupEnv("SECRET_KEY"); exist {
+	secretKey := secretKey
+	if parsedSecretKey, exist := os.LookupEnv("secretKey"); exist {
 		secretKey = parsedSecretKey
 	}
 	return &Auth{
@@ -34,7 +34,7 @@ func NewAuth() *Auth {
 func (a Auth) GenerateToken(userID string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
 		UserID: userID,
 	})
