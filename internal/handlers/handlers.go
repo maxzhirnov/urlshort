@@ -62,11 +62,14 @@ func (h *Handlers) HandleCreate(c *gin.Context) {
 	originalURL := string(originalURLData)
 
 	jwtToken, err := c.Cookie("jwt_token")
-	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
-		return
+	var userID string
+	if err == nil {
+		userID, err = h.auth.ValidateToken(jwtToken)
+		if err != nil {
+			c.String(http.StatusUnauthorized, "unauthorized")
+			return
+		}
 	}
-	userID, err := h.auth.ValidateToken(jwtToken)
 
 	statusCode := http.StatusCreated
 	shortenURLObject, err := h.service.Create(originalURL, userID)
@@ -117,11 +120,14 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 	}
 
 	jwtToken, err := c.Cookie("jwt_token")
-	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
-		return
+	var userID string
+	if err == nil {
+		userID, err = h.auth.ValidateToken(jwtToken)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			return
+		}
 	}
-	userID, err := h.auth.ValidateToken(jwtToken)
 
 	statusCode := http.StatusCreated
 	shortenURLObject, err := h.service.Create(reqData.URL, userID)

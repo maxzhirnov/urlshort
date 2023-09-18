@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/BVSdyn8i
+GET http://localhost:8080/TODLkkn5
 
 ### ping
 GET http://localhost:8080/ping
@@ -15,7 +15,7 @@ Content-Type: application/json
 Accept-Encoding: br,deflate,gzip,x-gzip
 
 {
-  "url": "pp.com"
+  "url": "example.com"
 }
 
 
