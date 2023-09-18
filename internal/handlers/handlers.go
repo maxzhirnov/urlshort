@@ -199,7 +199,7 @@ type ShowAllUsersURLsDTO struct {
 func (h *Handlers) newShowAllUsersURLsDTO(su models.ShortURL) ShowAllUsersURLsDTO {
 	return ShowAllUsersURLsDTO{
 		ShortURL:    h.baseURL + "/" + su.ID,
-		OriginalURL: "http://" + su.OriginalURL,
+		OriginalURL: su.OriginalURL,
 	}
 }
 
