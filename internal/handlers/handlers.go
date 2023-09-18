@@ -61,24 +61,9 @@ func (h *Handlers) HandleCreate(c *gin.Context) {
 
 	originalURL := string(originalURLData)
 
-	jwtToken := ""
-	// Пытаемся получить jwtToken из контекста
-	if tempToken, exists := c.Get("jwt_token"); exists {
-		jwtToken = tempToken.(string)
-	} else {
-		// Если токена нет в контексте, пытаемся получить его из куки
-		jwtToken, err = c.Cookie("jwt_token")
-		if err != nil {
-			c.String(http.StatusUnauthorized, "unauthorized")
-			return
-		}
-	}
-
-	var userID string
-	userID, err = h.auth.ValidateToken(jwtToken)
+	userID, err := h.getUserIDFromJWTToken(c)
 	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
-		return
+		h.logger.Warn(err.Error())
 	}
 
 	statusCode := http.StatusCreated
@@ -129,25 +114,9 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 		return
 	}
 
-	jwtToken := ""
-	var err error
-	// Пытаемся получить jwtToken из контекста
-	if tempToken, exists := c.Get("jwt_token"); exists {
-		jwtToken = tempToken.(string)
-	} else {
-		// Если токена нет в контексте, пытаемся получить его из куки
-		jwtToken, err = c.Cookie("jwt_token")
-		if err != nil {
-			c.String(http.StatusUnauthorized, "unauthorized")
-			return
-		}
-	}
-
-	var userID string
-	userID, err = h.auth.ValidateToken(jwtToken)
+	userID, err := h.getUserIDFromJWTToken(c)
 	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
-		return
+		h.logger.Warn(err.Error())
 	}
 
 	statusCode := http.StatusCreated
@@ -183,25 +152,9 @@ func (h *Handlers) HandleShortenBatch(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
-	jwtToken := ""
-	var err error
-	// Пытаемся получить jwtToken из контекста
-	if tempToken, exists := c.Get("jwt_token"); exists {
-		jwtToken = tempToken.(string)
-	} else {
-		// Если токена нет в контексте, пытаемся получить его из куки
-		jwtToken, err = c.Cookie("jwt_token")
-		if err != nil {
-			c.String(http.StatusUnauthorized, "unauthorized")
-			return
-		}
-	}
-
-	var userID string
-	userID, err = h.auth.ValidateToken(jwtToken)
+	userID, err := h.getUserIDFromJWTToken(c)
 	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
-		return
+		h.logger.Warn(err.Error())
 	}
 
 	urlsToShort := make([]string, 0)
@@ -279,4 +232,27 @@ func (h *Handlers) HandleShowAllUsersURLs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, res)
+}
+
+func (h *Handlers) getUserIDFromJWTToken(c *gin.Context) (string, error) {
+	var jwtToken string
+	var err error
+	// Пытаемся получить jwtToken из контекста
+	if tempToken, exists := c.Get("jwt_token"); exists {
+		jwtToken = tempToken.(string)
+	} else {
+		// Если токена нет в контексте, пытаемся получить его из куки
+		jwtToken, err = c.Cookie("jwt_token")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var userID string
+	userID, err = h.auth.ValidateToken(jwtToken)
+	if err != nil {
+		return "", err
+	}
+
+	return userID, nil
 }

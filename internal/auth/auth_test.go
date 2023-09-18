@@ -8,6 +8,6 @@ import (
 
 func Test_GenerateUserID(t *testing.T) {
 	auth := NewAuth()
-	userId := auth.GenerateUUID()
-	assert.Greater(t, len(userId), 0)
+	userID := auth.GenerateUUID()
+	assert.Greater(t, len(userID), 0)
 }
