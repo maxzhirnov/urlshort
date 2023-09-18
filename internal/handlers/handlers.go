@@ -204,14 +204,9 @@ func (h *Handlers) newShowAllUsersURLsDTO(su models.ShortURL) ShowAllUsersURLsDT
 }
 
 func (h *Handlers) HandleShowAllUsersURLs(c *gin.Context) {
-	jwtToken, err := c.Cookie("jwt_token")
+	userID, err := h.getUserIDFromJWTToken(c)
 	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	userID, err := h.auth.ValidateToken(jwtToken)
-	if err != nil {
-		c.String(http.StatusUnauthorized, "unauthorized")
+		c.JSON(http.StatusNoContent, "empty")
 		return
 	}
 
