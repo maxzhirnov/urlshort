@@ -10,9 +10,12 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/maxzhirnov/urlshort/internal/auth"
+	"github.com/maxzhirnov/urlshort/internal/logging"
 	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
@@ -131,7 +134,9 @@ func Test_handleCreate(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			m := &mockURLShortenerService{}
 			m.CreateFunc = tt.createFunc
-			handlers := NewHandlers(m, tt.redirectHost, nil, nil)
+			lg := logging.NewLogrusLogger(logrus.DebugLevel)
+			auths := auth.NewAuth()
+			handlers := NewHandlers(m, tt.redirectHost, auths, lg)
 			h := handlers.HandleCreate
 			h(c)
 
@@ -249,6 +254,8 @@ func TestHandleShorten(t *testing.T) {
 			sh := &Handlers{
 				service: mockService,
 				baseURL: "http://example.com",
+				logger:  logging.NewLogrusLogger(logrus.DebugLevel),
+				auth:    auth.NewAuth(),
 			}
 			router.POST("/shorten", sh.HandleShorten)
 
