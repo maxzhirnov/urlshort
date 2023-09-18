@@ -7,6 +7,7 @@ import (
 type ShortURL struct {
 	OriginalURL string `json:"original_url"`
 	ID          string `json:"id"`
+	UUID        string `json:"uuid"`
 }
 
 func (u ShortURL) String() string {

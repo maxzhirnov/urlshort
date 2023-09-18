@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/maxzhirnov/urlshort/internal/auth"
 	"github.com/maxzhirnov/urlshort/internal/models"
 	"github.com/maxzhirnov/urlshort/internal/services"
 )
@@ -22,51 +23,59 @@ type logger interface {
 }
 
 type service interface {
-	Create(originalURL string) (models.ShortURL, error)
-	CreateBatch([]string) (ids []string, err error)
+	Create(url, uuid string) (models.ShortURL, error)
+	CreateBatch(urls []string, uuid string) (ids []string, err error)
 	Get(id string) (url models.ShortURL, err error)
+	GetAllUsersURLs(uuid string) ([]models.ShortURL, error)
 	Ping() error
 }
 
 type Handlers struct {
 	service service
 	baseURL string
+	auth    *auth.Auth
 	logger  logger
 }
 
-func NewHandlers(s service, baseURL string, logger logger) *Handlers {
+func NewHandlers(s service, baseURL string, auth *auth.Auth, logger logger) *Handlers {
 	return &Handlers{
 		service: s,
 		baseURL: baseURL,
+		auth:    auth,
 		logger:  logger,
 	}
 }
 
 func (h *Handlers) HandleCreate(c *gin.Context) {
 	defer c.Request.Body.Close()
-	data, err := io.ReadAll(c.Request.Body)
+	originalURLData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error reading request body")
 		return
 	}
 
-	if len(data) == 0 {
+	if len(originalURLData) == 0 {
 		c.String(http.StatusBadRequest, "url shouldn't be empty")
 		return
 	}
 
-	originalHost := string(data)
-	statusCode := http.StatusCreated
-	shortenURLObject, err := h.service.Create(originalHost)
+	originalURL := string(originalURLData)
 
+	jwtToken, err := c.Cookie("jwt_token")
 	if err != nil {
-		switch {
-		default:
-			c.String(http.StatusInternalServerError, "error creating shorten url")
-			return
-		case errors.Is(err, services.ErrEntityAlreadyExist):
-			statusCode = http.StatusConflict
-		}
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID, err := h.auth.ValidateToken(jwtToken)
+
+	statusCode := http.StatusCreated
+	shortenURLObject, err := h.service.Create(originalURL, userID)
+
+	if errors.Is(err, services.ErrEntityAlreadyExist) {
+		statusCode = http.StatusConflict
+	} else if err != nil {
+		c.String(http.StatusInternalServerError, "error creating shorten url")
+		return
 	}
 
 	shortenURL := fmt.Sprintf("%s/%s", h.baseURL, shortenURLObject.ID)
@@ -107,8 +116,15 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 		return
 	}
 
+	jwtToken, err := c.Cookie("jwt_token")
+	if err != nil {
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID, err := h.auth.ValidateToken(jwtToken)
+
 	statusCode := http.StatusCreated
-	shortenURLObject, err := h.service.Create(reqData.URL)
+	shortenURLObject, err := h.service.Create(reqData.URL, userID)
 	if err != nil {
 		switch {
 		default:
@@ -140,12 +156,19 @@ func (h *Handlers) HandleShortenBatch(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
+	jwtToken, err := c.Cookie("jwt_token")
+	if err != nil {
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID, err := h.auth.ValidateToken(jwtToken)
+
 	urlsToShort := make([]string, 0)
 	for _, u := range request {
 		urlsToShort = append(urlsToShort, u.OriginalURL)
 	}
 
-	ids, err := h.service.CreateBatch(urlsToShort)
+	ids, err := h.service.CreateBatch(urlsToShort, userID)
 	if err != nil {
 		h.logger.Error("error creating batch", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
@@ -172,4 +195,39 @@ func (h *Handlers) HandlePing(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, "connected to database")
+}
+
+type ShowAllUsersURLsDTO struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+func (h *Handlers) newShowAllUsersURLsDTO(su models.ShortURL) ShowAllUsersURLsDTO {
+	return ShowAllUsersURLsDTO{
+		ShortURL:    h.baseURL + "/" + su.ID,
+		OriginalURL: "http://" + su.OriginalURL,
+	}
+}
+
+func (h *Handlers) HandleShowAllUsersURLs(c *gin.Context) {
+	jwtToken, err := c.Cookie("jwt_token")
+	if err != nil {
+		c.String(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID, err := h.auth.ValidateToken(jwtToken)
+
+	userURLs, err := h.service.GetAllUsersURLs(userID)
+	if len(userURLs) == 0 {
+		c.JSON(http.StatusNoContent, "empty")
+		return
+	}
+
+	res := make([]ShowAllUsersURLsDTO, len(userURLs))
+	for i, u := range userURLs {
+		dto := h.newShowAllUsersURLsDTO(u)
+		res[i] = dto
+	}
+
+	c.JSON(http.StatusOK, res)
 }

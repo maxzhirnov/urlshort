@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -34,7 +35,7 @@ func NewFileStorage(filePath string) (*FileStorage, error) {
 	}, nil
 }
 
-func (s *FileStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
+func (s *FileStorage) InsertURL(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	data, err := json.Marshal(url)
@@ -57,16 +58,16 @@ func (s *FileStorage) Insert(ctx context.Context, url models.ShortURL) (models.S
 	return url, nil
 }
 
-func (s *FileStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+func (s *FileStorage) InsertURLMany(ctx context.Context, urls []models.ShortURL) error {
 	for _, url := range urls {
-		if _, err := s.Insert(ctx, url); err != nil {
+		if _, err := s.InsertURL(ctx, url); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *FileStorage) Get(ctx context.Context, id string) (models.ShortURL, bool) {
+func (s *FileStorage) GetURLByID(ctx context.Context, id string) (models.ShortURL, bool) {
 	_, err := s.file.Seek(0, io.SeekStart)
 	if err != nil {
 		return models.ShortURL{}, false
@@ -91,6 +92,14 @@ func (s *FileStorage) Get(ctx context.Context, id string) (models.ShortURL, bool
 	return models.ShortURL{}, false
 }
 
+func (s *FileStorage) GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool) {
+	panic(fmt.Errorf("Not implemented"))
+}
+
+func (s *FileStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (s *FileStorage) Bootstrap(ctx context.Context) error {
 	return nil
 }
@@ -110,7 +119,7 @@ func (s *FileStorage) initializeData(memoryStorage *MemoryStorage) error {
 		return err
 	}
 	for _, u := range urls {
-		if _, err := memoryStorage.Insert(context.Background(), u); err != nil {
+		if _, err := memoryStorage.InsertURL(context.Background(), u); err != nil {
 			return err
 		}
 	}

@@ -21,9 +21,11 @@ type logger interface {
 
 // Storage is an interface for Storage services for storing and loading the url data
 type Storage interface {
-	Insert(context.Context, models.ShortURL) (models.ShortURL, error)
-	InsertMany(context.Context, []models.ShortURL) error
-	Get(ctx context.Context, id string) (models.ShortURL, bool)
+	InsertURL(context.Context, models.ShortURL) (models.ShortURL, error)
+	InsertURLMany(context.Context, []models.ShortURL) error
+	GetURLByID(ctx context.Context, id string) (models.ShortURL, bool)
+	GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool)
+	GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error)
 	Bootstrap(context.Context) error
 	Close() error
 	Ping() error
@@ -44,7 +46,7 @@ func NewRepository(logger logger, storage Storage) *Repository {
 }
 
 func (r *Repository) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
-	insertedURL, err := r.storage.Insert(ctx, url)
+	insertedURL, err := r.storage.InsertURL(ctx, url)
 	if err != nil {
 		if errors.Is(err, storages.ErrEntityAlreadyExist) {
 			return insertedURL, ErrEntityAlreadyExist
@@ -56,16 +58,31 @@ func (r *Repository) Insert(ctx context.Context, url models.ShortURL) (models.Sh
 	return insertedURL, nil
 }
 
-func (r *Repository) InsertMany(ctx context.Context, urls []models.ShortURL) error {
-	return r.storage.InsertMany(ctx, urls)
+// InsertMany inserts urls if not exists, if exists returns existing url object
+func (r *Repository) InsertMany(ctx context.Context, urlsToInsert []models.ShortURL) ([]models.ShortURL, error) {
+	if err := r.storage.InsertURLMany(ctx, urlsToInsert); err != nil {
+		return nil, err
+	}
+
+	shortenURLs := make([]models.ShortURL, len(urlsToInsert))
+	for i, u := range urlsToInsert {
+		existingURL, _ := r.storage.GetURLByOriginalURL(ctx, u.OriginalURL)
+		shortenURLs[i] = existingURL
+	}
+
+	return shortenURLs, nil
 }
 
-func (r *Repository) Get(ctx context.Context, id string) (models.ShortURL, error) {
-	url, ok := r.storage.Get(ctx, id)
+func (r *Repository) GetURLByID(ctx context.Context, id string) (models.ShortURL, error) {
+	url, ok := r.storage.GetURLByID(ctx, id)
 	if !ok {
 		return models.ShortURL{}, fmt.Errorf("id not found")
 	}
 	return url, nil
+}
+
+func (r *Repository) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
+	return r.storage.GetURLsByUUID(ctx, uuid)
 }
 
 func (r *Repository) Ping() error {

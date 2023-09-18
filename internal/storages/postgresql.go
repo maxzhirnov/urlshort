@@ -26,7 +26,7 @@ func NewPostgresql(conn string) (*Postgresql, error) {
 	}, nil
 }
 
-func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (models.ShortURL, error) {
+func (s Postgresql) InsertURL(ctx context.Context, shortURL models.ShortURL) (models.ShortURL, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		tx.Rollback()
@@ -34,8 +34,8 @@ func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (model
 	}
 
 	stmt, err := tx.PrepareContext(ctx, `
-	INSERT INTO short_urls(id, original_url, updated_at) 
-	VALUES ($1, $2, NOW()) 
+	INSERT INTO short_urls(id, original_url, uuid, updated_at) 
+	VALUES ($1, $2, $3, NOW()) 
 	ON CONFLICT (original_url) DO UPDATE SET updated_at = NOW()
 	RETURNING *, (xmax = 0) AS is_inserted;
 	`)
@@ -44,7 +44,7 @@ func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (model
 	}
 	defer stmt.Close()
 
-	row := stmt.QueryRowContext(ctx, shortURL.ID, shortURL.OriginalURL)
+	row := stmt.QueryRowContext(ctx, shortURL.ID, shortURL.OriginalURL, shortURL.UUID)
 	if row.Err() != nil {
 		tx.Rollback()
 		return models.ShortURL{}, fmt.Errorf("something went wrong")
@@ -52,8 +52,9 @@ func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (model
 
 	var result models.ShortURL
 	var createdAt time.Time
+	var userID string
 	var isInserted bool
-	if err := row.Scan(&result.ID, &result.OriginalURL, &createdAt, &isInserted); err != nil {
+	if err := row.Scan(&result.ID, &result.OriginalURL, &createdAt, &userID, &isInserted); err != nil {
 		tx.Rollback()
 		return models.ShortURL{}, err
 	}
@@ -66,13 +67,13 @@ func (s Postgresql) Insert(ctx context.Context, shortURL models.ShortURL) (model
 	return result, nil
 }
 
-func (s Postgresql) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+func (s Postgresql) InsertURLMany(ctx context.Context, urls []models.ShortURL) error {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_urls(id, original_url) VALUES ($1, $2) ON CONFLICT DO NOTHING ")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_urls(id, original_url, uuid, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT DO NOTHING ")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -80,7 +81,7 @@ func (s Postgresql) InsertMany(ctx context.Context, urls []models.ShortURL) erro
 	defer stmt.Close()
 
 	for _, url := range urls {
-		if _, err := stmt.ExecContext(ctx, url.ID, url.OriginalURL); err != nil {
+		if _, err := stmt.ExecContext(ctx, url.ID, url.OriginalURL, url.UUID); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -89,14 +90,48 @@ func (s Postgresql) InsertMany(ctx context.Context, urls []models.ShortURL) erro
 	return tx.Commit()
 }
 
-func (s Postgresql) Get(ctx context.Context, id string) (models.ShortURL, bool) {
-	row := s.DB.QueryRowContext(ctx, `SELECT id, original_url FROM short_urls WHERE id=$1`, id)
+func (s Postgresql) GetURLByID(ctx context.Context, id string) (models.ShortURL, bool) {
+	row := s.DB.QueryRowContext(ctx, `SELECT id, original_url, uuid FROM short_urls WHERE id=$1`, id)
+	shortURL := models.ShortURL{}
+	err := row.Scan(&shortURL.ID, &shortURL.OriginalURL, &shortURL.UUID)
+	if err != nil {
+		return shortURL, false
+	}
+	return shortURL, true
+}
+
+func (s Postgresql) GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool) {
+	row := s.DB.QueryRowContext(ctx, `SELECT id, original_url FROM short_urls WHERE original_url=$1`, url)
 	shortURL := models.ShortURL{}
 	err := row.Scan(&shortURL.ID, &shortURL.OriginalURL)
 	if err != nil {
 		return shortURL, false
 	}
 	return shortURL, true
+}
+
+func (s Postgresql) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT id, original_url FROM short_urls WHERE uuid=$1`, uuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	shortURLs := make([]models.ShortURL, 0)
+	for rows.Next() {
+		url := models.ShortURL{}
+		if err := rows.Scan(&url.ID, &url.OriginalURL); err != nil {
+			return nil, err
+		}
+		shortURLs = append(shortURLs, url)
+	}
+
+	// Проверка на ошибки, которые могли возникнуть после завершения итерации
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return shortURLs, nil
 }
 
 func (s Postgresql) Bootstrap(ctx context.Context) error {
@@ -128,6 +163,7 @@ func (s Postgresql) initTables() error {
 									  id varchar(20) NOT NULL,
 									  original_url varchar(450) NOT NULL,
 									  updated_at TIMESTAMP DEFAULT NOW(),
+									  uuid uuid,
 									  PRIMARY KEY (id)) ;`); err != nil {
 		return err
 	}
