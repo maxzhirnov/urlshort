@@ -95,7 +95,7 @@ func (h *Handlers) HandleRedirect(c *gin.Context) {
 		c.String(http.StatusNotFound, "id not found")
 		return
 	}
-	if url.DeletedFlag == true {
+	if url.DeletedFlag {
 		c.String(http.StatusGone, "requested url was deleted")
 	}
 	c.Redirect(http.StatusTemporaryRedirect, services.EnsureURLScheme(url.OriginalURL))

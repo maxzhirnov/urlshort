@@ -34,7 +34,6 @@ func (m *mockURLShortenerService) CreateBatch(urls []string, uuid string) (ids [
 }
 
 func (m *mockURLShortenerService) Delete(ids []string, id string) {
-	return
 }
 
 func (m *mockURLShortenerService) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
