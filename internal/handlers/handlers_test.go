@@ -33,6 +33,10 @@ func (m *mockURLShortenerService) CreateBatch(urls []string, uuid string) (ids [
 	panic("implement me")
 }
 
+func (m *mockURLShortenerService) Delete(ids []string, id string) {
+	return
+}
+
 func (m *mockURLShortenerService) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
 	//TODO implement me
 	panic("implement me")

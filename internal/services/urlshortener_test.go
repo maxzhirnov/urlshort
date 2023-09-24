@@ -27,6 +27,10 @@ func (ms *mockStorage) GetURLByID(ctx context.Context, id string) (models.ShortU
 	}, nil
 }
 
+func (ms *mockStorage) TagURLsDeleted(urls []models.Deletion) error {
+	return nil
+}
+
 func (ms *mockStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
 	//TODO implement me
 	panic("implement me")
