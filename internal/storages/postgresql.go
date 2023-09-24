@@ -37,7 +37,7 @@ func (s Postgresql) InsertURL(ctx context.Context, shortURL models.ShortURL) (mo
 	INSERT INTO short_urls(id, original_url, uuid, updated_at) 
 	VALUES ($1, $2, $3, NOW()) 
 	ON CONFLICT (original_url) DO UPDATE SET updated_at = NOW()
-	RETURNING *, (xmax = 0) AS is_inserted;
+	RETURNING id, original_url, updated_at, uuid, (xmax = 0) AS is_inserted;
 	`)
 	if err != nil {
 		return models.ShortURL{}, err
@@ -90,10 +90,37 @@ func (s Postgresql) InsertURLMany(ctx context.Context, urls []models.ShortURL) e
 	return tx.Commit()
 }
 
+func (s Postgresql) TagURLsDeleted(ctx context.Context, urlsToDelete []models.Deletion) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.PrepareContext(ctx, `
+UPDATE short_urls
+SET deleted_flag = true
+WHERE id = $1 AND uuid = $2;
+`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for _, url := range urlsToDelete {
+		if _, err := stmt.ExecContext(ctx, url.URLID, url.UserID); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (s Postgresql) GetURLByID(ctx context.Context, id string) (models.ShortURL, bool) {
-	row := s.DB.QueryRowContext(ctx, `SELECT id, original_url, uuid FROM short_urls WHERE id=$1`, id)
+	row := s.DB.QueryRowContext(ctx, `SELECT id, original_url, uuid, deleted_flag FROM short_urls WHERE id=$1`, id)
 	shortURL := models.ShortURL{}
-	err := row.Scan(&shortURL.ID, &shortURL.OriginalURL, &shortURL.UUID)
+	err := row.Scan(&shortURL.ID, &shortURL.OriginalURL, &shortURL.UUID, &shortURL.DeletedFlag)
 	if err != nil {
 		return shortURL, false
 	}
@@ -164,6 +191,7 @@ func (s Postgresql) initTables() error {
 									  original_url varchar(450) NOT NULL,
 									  updated_at TIMESTAMP DEFAULT NOW(),
 									  uuid uuid,
+									  deleted_flag BOOLEAN DEFAULT FALSE,
 									  PRIMARY KEY (id)) ;`); err != nil {
 		return err
 	}
@@ -171,7 +199,7 @@ func (s Postgresql) initTables() error {
 }
 
 func (s Postgresql) createUniqueOriginalURLIndex() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := "CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_short_url ON short_urls (original_url)"

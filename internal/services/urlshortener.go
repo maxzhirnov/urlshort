@@ -26,6 +26,7 @@ type repository interface {
 	InsertMany(context.Context, []models.ShortURL) ([]models.ShortURL, error)
 	GetURLByID(ctx context.Context, id string) (models.ShortURL, error)
 	GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error)
+	TagURLsDeleted([]models.Deletion) error
 	Ping() error
 }
 
@@ -37,14 +38,22 @@ type URLShortener struct {
 	Repo        repository
 	IDGenerator idGenerator
 	logger      logger
+
+	// Канал для удаления URL-ов
+	deleteChan chan models.Deletion
 }
 
 func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *URLShortener {
-	return &URLShortener{
+	instance := &URLShortener{
 		Repo:        repo,
 		IDGenerator: idGenerator,
 		logger:      logger,
+		deleteChan:  make(chan models.Deletion, 512),
 	}
+
+	go instance.processLinkDeletion()
+
+	return instance
 }
 
 func (us URLShortener) Create(originalURL, uuid string) (models.ShortURL, error) {
@@ -116,6 +125,40 @@ func (us URLShortener) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
 	return us.Repo.GetURLsByUUID(ctx, uuid)
 }
 
+func (us URLShortener) Delete(ids []string, userID string) {
+	go func() {
+		for _, id := range ids {
+			deletion := models.Deletion{
+				UserID: userID,
+				URLID:  id,
+			}
+			us.deleteChan <- deletion
+		}
+	}()
+}
+
 func (us URLShortener) Ping() error {
 	return us.Repo.Ping()
+}
+
+func (us URLShortener) processLinkDeletion() {
+	ticker := time.NewTicker(10 * time.Second)
+	var deletions []models.Deletion
+
+	for {
+		select {
+		case d := <-us.deleteChan:
+			deletions = append(deletions, d)
+		case <-ticker.C:
+			if len(deletions) == 0 {
+				continue
+			}
+			err := us.Repo.TagURLsDeleted(deletions)
+			if err != nil {
+				us.logger.Error(err.Error())
+				continue
+			}
+			deletions = nil
+		}
+	}
 }

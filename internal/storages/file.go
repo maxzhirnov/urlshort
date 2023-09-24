@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -93,11 +92,15 @@ func (s *FileStorage) GetURLByID(ctx context.Context, id string) (models.ShortUR
 }
 
 func (s *FileStorage) GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool) {
-	panic(fmt.Errorf("not implemented"))
+	return models.ShortURL{}, false
 }
 
 func (s *FileStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
-	panic(fmt.Errorf("not implemented"))
+	return nil, nil
+}
+
+func (s *FileStorage) TagURLsDeleted(ctx context.Context, urlsToDelete []models.Deletion) error {
+	return nil
 }
 
 func (s *FileStorage) Bootstrap(ctx context.Context) error {

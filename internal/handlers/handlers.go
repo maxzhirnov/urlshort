@@ -28,6 +28,7 @@ type service interface {
 	Get(id string) (url models.ShortURL, err error)
 	GetAllUsersURLs(uuid string) ([]models.ShortURL, error)
 	Ping() error
+	Delete(ids []string, id string)
 }
 
 type Handlers struct {
@@ -94,7 +95,9 @@ func (h *Handlers) HandleRedirect(c *gin.Context) {
 		c.String(http.StatusNotFound, "id not found")
 		return
 	}
-
+	if url.DeletedFlag == true {
+		c.String(http.StatusGone, "requested url was deleted")
+	}
 	c.Redirect(http.StatusTemporaryRedirect, services.EnsureURLScheme(url.OriginalURL))
 }
 
@@ -250,4 +253,27 @@ func (h *Handlers) getUserIDFromJWTToken(c *gin.Context) (string, error) {
 	}
 
 	return userID, nil
+}
+
+func (h *Handlers) HandleDeleteURL(c *gin.Context) {
+	userID, err := h.getUserIDFromJWTToken(c)
+	if err != nil {
+		h.logger.Error("error parsing user_id", err.Error())
+		c.JSON(http.StatusUnauthorized, "not authorized")
+		return
+	}
+
+	var ids []string
+	if err := json.NewDecoder(c.Request.Body).Decode(&ids); err != nil {
+		h.logger.Error("error unmarshalling body", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you should provide correct data"})
+		return
+	}
+	defer c.Request.Body.Close()
+
+	h.logger.Debug(fmt.Sprintf("request from user_id: %s, to delete urls: %s", userID, ids))
+
+	h.service.Delete(ids, userID)
+
+	c.JSON(http.StatusAccepted, "accepted")
 }

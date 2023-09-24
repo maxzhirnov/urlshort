@@ -2,7 +2,6 @@ package storages
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/maxzhirnov/urlshort/internal/models"
@@ -61,8 +60,12 @@ func (s *MemoryStorage) InsertURLMany(ctx context.Context, urls []models.ShortUR
 	return nil
 }
 
+func (s *MemoryStorage) TagURLsDeleted(ctx context.Context, urlsToDelete []models.Deletion) error {
+	return nil
+}
+
 func (s *MemoryStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
-	panic(fmt.Errorf("not implemented"))
+	return nil, nil
 }
 
 func (s *MemoryStorage) Bootstrap(ctx context.Context) error {

@@ -72,6 +72,7 @@ func main() {
 	api.POST("/shorten", handler.HandleShorten)
 	api.POST("/shorten/batch", handler.HandleShortenBatch)
 	api.GET("/user/urls", handler.HandleShowAllUsersURLs)
+	api.DELETE("/user/urls", handler.HandleDeleteURL)
 
 	if err := r.Run(config.ServerAddr()); err != nil {
 		logger.Fatal("Couldn't start server",

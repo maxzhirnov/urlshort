@@ -58,6 +58,10 @@ func (s *CombinedStorage) Bootstrap(ctx context.Context) error {
 	return s.safeFile.initializeData(s.safeMap)
 }
 
+func (s *CombinedStorage) TagURLsDeleted(ctx context.Context, urlsToDelete []models.Deletion) error {
+	return nil
+}
+
 func (s *CombinedStorage) Ping() error {
 	return nil
 }
