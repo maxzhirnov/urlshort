@@ -246,8 +246,7 @@ func (h *Handlers) getUserIDFromJWTToken(c *gin.Context) (string, error) {
 		}
 	}
 
-	var userID string
-	userID = h.auth.ValidateToken(jwtToken)
+	userID := h.auth.ValidateToken(jwtToken)
 	if userID == "" {
 		return "", fmt.Errorf("invalid userID")
 	}

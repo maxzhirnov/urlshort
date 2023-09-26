@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	deletionInterval = 30 * time.Second
+	deletionInterval = 5 * time.Second
 	deleteChanCap    = 512
 )
 
