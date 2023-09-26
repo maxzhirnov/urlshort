@@ -122,16 +122,16 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 		h.logger.Warn(err.Error())
 	}
 
-	statusCode := http.StatusCreated
 	shortenURLObject, err := h.service.Create(reqData.URL, userID)
+	if errors.Is(err, services.ErrEntityAlreadyExist) {
+		h.logger.Error(err.Error())
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
 	if err != nil {
-		switch {
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
-			return
-		case errors.Is(err, services.ErrEntityAlreadyExist):
-			statusCode = http.StatusConflict
-		}
+		h.logger.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	response := struct {
@@ -139,7 +139,7 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 	}{
 		Result: h.baseURL + "/" + shortenURLObject.ID,
 	}
-	c.JSON(statusCode, response)
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h *Handlers) HandleShortenBatch(c *gin.Context) {
@@ -247,9 +247,9 @@ func (h *Handlers) getUserIDFromJWTToken(c *gin.Context) (string, error) {
 	}
 
 	var userID string
-	userID, err = h.auth.ValidateToken(jwtToken)
-	if err != nil {
-		return "", err
+	userID = h.auth.ValidateToken(jwtToken)
+	if userID == "" {
+		return "", fmt.Errorf("invalid userID")
 	}
 
 	return userID, nil

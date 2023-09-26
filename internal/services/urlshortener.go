@@ -9,6 +9,11 @@ import (
 	"github.com/maxzhirnov/urlshort/internal/repositories"
 )
 
+const (
+	deletionInterval = 30 * time.Second
+	deleteChanCap    = 512
+)
+
 var (
 	ErrEntityAlreadyExist = errors.New("entity already exist")
 )
@@ -41,6 +46,7 @@ type URLShortener struct {
 
 	// Канал для удаления URL-ов
 	deleteChan chan models.Deletion
+	quitChan   chan struct{}
 }
 
 func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *URLShortener {
@@ -48,12 +54,17 @@ func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *U
 		Repo:        repo,
 		IDGenerator: idGenerator,
 		logger:      logger,
-		deleteChan:  make(chan models.Deletion, 512),
+		deleteChan:  make(chan models.Deletion, deleteChanCap),
+		quitChan:    make(chan struct{}),
 	}
 
 	go instance.processLinkDeletion()
 
 	return instance
+}
+
+func (us URLShortener) Stop() {
+	close(us.quitChan)
 }
 
 func (us URLShortener) Create(originalURL, uuid string) (models.ShortURL, error) {
@@ -142,8 +153,9 @@ func (us URLShortener) Ping() error {
 }
 
 func (us URLShortener) processLinkDeletion() {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(deletionInterval)
 	var deletions []models.Deletion
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -159,6 +171,9 @@ func (us URLShortener) processLinkDeletion() {
 				continue
 			}
 			deletions = nil
+		case <-us.quitChan:
+			close(us.deleteChan)
+			return
 		}
 	}
 }

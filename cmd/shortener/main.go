@@ -4,6 +4,9 @@ import (
 	"compress/gzip"
 	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -54,6 +57,8 @@ func main() {
 	authService := auth.NewAuth()
 	handler := handlers.NewHandlers(service, config.BaseURL(), authService, logger)
 
+	go waitForShutdown(service)
+
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(middleware.LoggingMiddleware(logger))
@@ -79,4 +84,13 @@ func main() {
 			"error", err,
 		)
 	}
+}
+
+func waitForShutdown(urlShortener *services.URLShortener) {
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
+	<-stopChan
+
+	urlShortener.Stop()
+	os.Exit(0)
 }

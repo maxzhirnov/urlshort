@@ -1,8 +1,33 @@
 package logging
 
 import (
+	"fmt"
+	"runtime"
+
 	"github.com/sirupsen/logrus"
 )
+
+type CustomFormatter struct {
+	logrus.TextFormatter
+}
+
+func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	bytes, err := f.TextFormatter.Format(entry)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 9; i > 0; i-- {
+		_, file, line, ok := runtime.Caller(i)
+		if ok {
+			callerInfo := fmt.Sprintf("%s:%d ", file, line)
+			bytes = append([]byte(callerInfo), bytes...)
+			break
+		}
+	}
+
+	return bytes, nil
+}
 
 type LogrusLogger struct {
 	logger *logrus.Logger
@@ -11,6 +36,13 @@ type LogrusLogger struct {
 func NewLogrusLogger(level logrus.Level) *LogrusLogger {
 	logger := logrus.New()
 	logger.Level = level
+	logger.Formatter = &CustomFormatter{
+		TextFormatter: logrus.TextFormatter{
+			FullTimestamp: true,
+			ForceColors:   true,
+		},
+	}
+
 	return &LogrusLogger{
 		logger: logger,
 	}

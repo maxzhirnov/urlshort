@@ -48,7 +48,7 @@ func (a Auth) GenerateToken(userID string) (string, error) {
 }
 
 // ValidateToken checks if token is valid and returns uuid
-func (a Auth) ValidateToken(tokenString string) (string, error) {
+func (a Auth) ValidateToken(tokenString string) string {
 	token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -57,13 +57,13 @@ func (a Auth) ValidateToken(tokenString string) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	if claims, ok := token.Claims.(*claims); ok && token.Valid {
-		return claims.UserID, nil
+		return claims.UserID
 	} else {
-		return "", fmt.Errorf("invalid token")
+		return ""
 	}
 }
 

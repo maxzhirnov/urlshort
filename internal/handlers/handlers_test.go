@@ -29,16 +29,14 @@ func (m *mockURLShortenerService) Create(url, uuid string) (models.ShortURL, err
 }
 
 func (m *mockURLShortenerService) CreateBatch(urls []string, uuid string) (ids []string, err error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, err
 }
 
 func (m *mockURLShortenerService) Delete(ids []string, id string) {
 }
 
 func (m *mockURLShortenerService) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
-	//TODO implement me
-	panic("implement me")
+	return make([]models.ShortURL, 0), nil
 }
 
 func (m *mockURLShortenerService) Get(id string) (models.ShortURL, error) {

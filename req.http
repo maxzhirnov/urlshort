@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/657s2L7Q
+GET http://localhost:8080/Mg2cC0IC
 
 ### ping
 GET http://localhost:8080/ping
@@ -42,4 +42,4 @@ GET http://localhost:8080/api/user/urls
 DELETE http://localhost:8080/api/user/urls
 Content-Type: application/json
 
-["Mg2cC0IC", "657s2L7Q", "RsMxs6Pw"]
+["Mg2cC0IC", "XLcZMY1C", "RsMxs6Pw"]
