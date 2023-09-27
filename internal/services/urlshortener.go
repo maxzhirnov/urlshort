@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/maxzhirnov/urlshort/internal/models"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	deletionInterval = 5 * time.Second
+	deletionInterval = 60 * time.Second
 	deleteChanCap    = 512
 )
 
@@ -46,16 +47,21 @@ type URLShortener struct {
 
 	// Канал для удаления URL-ов
 	deleteChan chan models.Deletion
-	quitChan   chan struct{}
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	wg         sync.WaitGroup
 }
 
 func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *URLShortener {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	instance := &URLShortener{
 		Repo:        repo,
 		IDGenerator: idGenerator,
 		logger:      logger,
 		deleteChan:  make(chan models.Deletion, deleteChanCap),
-		quitChan:    make(chan struct{}),
+		ctx:         ctx,
+		cancelFunc:  cancel,
 	}
 
 	go instance.processLinkDeletion()
@@ -63,11 +69,7 @@ func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *U
 	return instance
 }
 
-func (us URLShortener) Stop() {
-	close(us.quitChan)
-}
-
-func (us URLShortener) Create(originalURL, uuid string) (models.ShortURL, error) {
+func (us *URLShortener) Create(originalURL, uuid string) (models.ShortURL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	urlShorten := models.ShortURL{
@@ -91,7 +93,7 @@ func (us URLShortener) Create(originalURL, uuid string) (models.ShortURL, error)
 	return insertedURL, nil
 }
 
-func (us URLShortener) Get(id string) (models.ShortURL, error) {
+func (us *URLShortener) Get(id string) (models.ShortURL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if id == "" {
@@ -100,7 +102,7 @@ func (us URLShortener) Get(id string) (models.ShortURL, error) {
 	return us.Repo.GetURLByID(ctx, id)
 }
 
-func (us URLShortener) CreateBatch(urls []string, uuid string) ([]string, error) {
+func (us *URLShortener) CreateBatch(urls []string, uuid string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if len(urls) == 0 {
@@ -130,13 +132,13 @@ func (us URLShortener) CreateBatch(urls []string, uuid string) ([]string, error)
 	return ids, nil
 }
 
-func (us URLShortener) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
+func (us *URLShortener) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return us.Repo.GetURLsByUUID(ctx, uuid)
 }
 
-func (us URLShortener) Delete(ids []string, userID string) {
+func (us *URLShortener) Delete(ids []string, userID string) {
 	go func() {
 		for _, id := range ids {
 			deletion := models.Deletion{
@@ -148,13 +150,13 @@ func (us URLShortener) Delete(ids []string, userID string) {
 	}()
 }
 
-func (us URLShortener) Ping() error {
-	return us.Repo.Ping()
-}
+func (us *URLShortener) processLinkDeletion() {
+	// wg для gracefull shutdown
+	us.wg.Add(1)
+	defer us.wg.Done()
 
-func (us URLShortener) processLinkDeletion() {
 	ticker := time.NewTicker(deletionInterval)
-	var deletions []models.Deletion
+	deletions := make([]models.Deletion, 0, deleteChanCap)
 	defer ticker.Stop()
 
 	for {
@@ -170,10 +172,31 @@ func (us URLShortener) processLinkDeletion() {
 				us.logger.Error(err.Error())
 				continue
 			}
-			deletions = nil
-		case <-us.quitChan:
+			deletions = deletions[0:]
+		case <-us.ctx.Done():
+			// Удаляем все оставшиеся в канале deletions
+			for len(us.deleteChan) > 0 {
+				d := <-us.deleteChan
+				deletions = append(deletions, d)
+			}
+			if len(deletions) > 0 {
+				err := us.Repo.TagURLsDeleted(deletions)
+				if err != nil {
+					us.logger.Error(err.Error())
+				}
+			}
+			// и закрываем канал
 			close(us.deleteChan)
 			return
 		}
 	}
+}
+
+func (us *URLShortener) Stop() {
+	us.cancelFunc()
+	us.wg.Wait()
+}
+
+func (us *URLShortener) Ping() error {
+	return us.Repo.Ping()
 }
