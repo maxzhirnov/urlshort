@@ -57,7 +57,9 @@ func main() {
 	authService := auth.NewAuth()
 	handler := handlers.NewHandlers(service, config.BaseURL(), authService, logger)
 
-	go waitForShutdown(service)
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	go waitForShutdown(cancel2, service)
+	go service.ProcessLinkDeletion(ctx2)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -86,11 +88,11 @@ func main() {
 	}
 }
 
-func waitForShutdown(urlShortener *services.URLShortener) {
+func waitForShutdown(cancel context.CancelFunc, urlShortener *services.URLShortener) {
 	stopChan := make(chan os.Signal, 1)
 	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 	<-stopChan
 
-	urlShortener.Stop()
+	urlShortener.Stop(cancel)
 	os.Exit(0)
 }

@@ -47,26 +47,16 @@ type URLShortener struct {
 
 	// Канал для удаления URL-ов
 	deleteChan chan models.Deletion
-	ctx        context.Context
-	cancelFunc context.CancelFunc
 	wg         sync.WaitGroup
 }
 
 func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *URLShortener {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	instance := &URLShortener{
+	return &URLShortener{
 		Repo:        repo,
 		IDGenerator: idGenerator,
 		logger:      logger,
 		deleteChan:  make(chan models.Deletion, deleteChanCap),
-		ctx:         ctx,
-		cancelFunc:  cancel,
 	}
-
-	go instance.processLinkDeletion()
-
-	return instance
 }
 
 func (us *URLShortener) Create(originalURL, uuid string) (models.ShortURL, error) {
@@ -150,7 +140,7 @@ func (us *URLShortener) Delete(ids []string, userID string) {
 	}()
 }
 
-func (us *URLShortener) processLinkDeletion() {
+func (us *URLShortener) ProcessLinkDeletion(ctx context.Context) {
 	// wg для gracefull shutdown
 	us.wg.Add(1)
 	defer us.wg.Done()
@@ -173,7 +163,7 @@ func (us *URLShortener) processLinkDeletion() {
 				continue
 			}
 			deletions = deletions[0:]
-		case <-us.ctx.Done():
+		case <-ctx.Done():
 			// Удаляем все оставшиеся в канале deletions
 			for len(us.deleteChan) > 0 {
 				d := <-us.deleteChan
@@ -192,8 +182,8 @@ func (us *URLShortener) processLinkDeletion() {
 	}
 }
 
-func (us *URLShortener) Stop() {
-	us.cancelFunc()
+func (us *URLShortener) Stop(cancel context.CancelFunc) {
+	cancel()
 	us.wg.Wait()
 }
 
