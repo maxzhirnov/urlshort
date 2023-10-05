@@ -30,7 +30,7 @@ func TestGzipMiddleware(t *testing.T) {
 		t.Error(err)
 	}
 	r := gin.Default()
-	r.Use(Gzip(&mockLogger{}, gzipWriter))
+	r.Use(GzipMiddleware(gzipWriter, &mockLogger{}))
 
 	r.POST("/test", func(c *gin.Context) {
 		buf := new(bytes.Buffer)
@@ -40,7 +40,7 @@ func TestGzipMiddleware(t *testing.T) {
 		c.String(http.StatusOK, "response body")
 	})
 
-	// Insert a gzip compressed request body
+	// InsertURL a gzip compressed request body
 	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
 	if _, err := gz.Write([]byte("test body")); err != nil {

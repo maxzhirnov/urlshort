@@ -10,9 +10,12 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/maxzhirnov/urlshort/internal/auth"
+	"github.com/maxzhirnov/urlshort/internal/logging"
 	"github.com/maxzhirnov/urlshort/internal/models"
 )
 
@@ -21,13 +24,19 @@ type mockURLShortenerService struct {
 	GetFunc    func(id string) (url models.ShortURL, err error)
 }
 
-func (m *mockURLShortenerService) CreateBatch(i []string) (ids []string, err error) {
-	//TODO implement me
-	panic("implement me")
+func (m *mockURLShortenerService) Create(url, uuid string) (models.ShortURL, error) {
+	return m.CreateFunc(url)
 }
 
-func (m *mockURLShortenerService) Create(originalURL string) (models.ShortURL, error) {
-	return m.CreateFunc(originalURL)
+func (m *mockURLShortenerService) CreateBatch(urls []string, uuid string) (ids []string, err error) {
+	return nil, err
+}
+
+func (m *mockURLShortenerService) Delete(ids []string, id string) {
+}
+
+func (m *mockURLShortenerService) GetAllUsersURLs(uuid string) ([]models.ShortURL, error) {
+	return make([]models.ShortURL, 0), nil
 }
 
 func (m *mockURLShortenerService) Get(id string) (models.ShortURL, error) {
@@ -126,7 +135,9 @@ func Test_handleCreate(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, "/", strings.NewReader(tt.url))
 			m := &mockURLShortenerService{}
 			m.CreateFunc = tt.createFunc
-			handlers := NewHandlers(m, tt.redirectHost, nil)
+			lg := logging.NewLogrusLogger(logrus.DebugLevel)
+			auths := auth.NewAuth()
+			handlers := NewHandlers(m, tt.redirectHost, auths, lg)
 			h := handlers.HandleCreate
 			h(c)
 
@@ -184,7 +195,7 @@ func Test_handleRedirect(t *testing.T) {
 			c.Request = httptest.NewRequest(tt.method, tt.reqURL, nil)
 			m := &mockURLShortenerService{}
 			m.GetFunc = tt.getFunc
-			handlers := NewHandlers(m, "", nil)
+			handlers := NewHandlers(m, "", nil, nil)
 			h := handlers.HandleRedirect
 			h(c)
 
@@ -244,6 +255,8 @@ func TestHandleShorten(t *testing.T) {
 			sh := &Handlers{
 				service: mockService,
 				baseURL: "http://example.com",
+				logger:  logging.NewLogrusLogger(logrus.DebugLevel),
+				auth:    auth.NewAuth(),
 			}
 			router.POST("/shorten", sh.HandleShorten)
 

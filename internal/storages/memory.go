@@ -18,7 +18,7 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) Get(ctx context.Context, id string) (models.ShortURL, bool) {
+func (s *MemoryStorage) GetURLByID(ctx context.Context, id string) (models.ShortURL, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	url := models.ShortURL{}
@@ -30,23 +30,45 @@ func (s *MemoryStorage) Get(ctx context.Context, id string) (models.ShortURL, bo
 	return url, ok
 }
 
-func (s *MemoryStorage) Insert(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
+func (s *MemoryStorage) GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var urlFound models.ShortURL
+	for k, v := range s.m {
+		if v == url {
+			urlFound.OriginalURL = v
+			urlFound.ID = k
+			return urlFound, true
+		}
+	}
+	return urlFound, false
+}
+
+func (s *MemoryStorage) InsertURL(ctx context.Context, url models.ShortURL) (models.ShortURL, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.m[url.ID] = url.OriginalURL
 	return url, nil
 }
 
-func (s *MemoryStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+func (s *MemoryStorage) InsertURLMany(ctx context.Context, urls []models.ShortURL) error {
 	for _, url := range urls {
-		if _, err := s.Insert(ctx, url); err != nil {
+		if _, err := s.InsertURL(ctx, url); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *MemoryStorage) Bootstrap(ctx context.Context) error {
+func (s *MemoryStorage) TagURLsDeleted(ctx context.Context, urlsToDelete []models.Deletion) error {
+	return nil
+}
+
+func (s *MemoryStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
+	return nil, nil
+}
+
+func (s *MemoryStorage) Bootstrap() error {
 	return nil
 }
 

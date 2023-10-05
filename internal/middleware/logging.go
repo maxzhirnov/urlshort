@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Logging(logger logger) gin.HandlerFunc {
+func LoggingMiddleware(logger logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
 		c.Next()

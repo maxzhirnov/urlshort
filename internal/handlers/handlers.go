@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/maxzhirnov/urlshort/internal/auth"
 	"github.com/maxzhirnov/urlshort/internal/models"
 	"github.com/maxzhirnov/urlshort/internal/services"
 )
@@ -22,51 +23,58 @@ type logger interface {
 }
 
 type service interface {
-	Create(originalURL string) (models.ShortURL, error)
-	CreateBatch([]string) (ids []string, err error)
+	Create(url, uuid string) (models.ShortURL, error)
+	CreateBatch(urls []string, uuid string) (ids []string, err error)
 	Get(id string) (url models.ShortURL, err error)
+	GetAllUsersURLs(uuid string) ([]models.ShortURL, error)
 	Ping() error
+	Delete(ids []string, id string)
 }
 
 type Handlers struct {
 	service service
 	baseURL string
+	auth    *auth.Auth
 	logger  logger
 }
 
-func NewHandlers(s service, baseURL string, logger logger) *Handlers {
+func NewHandlers(s service, baseURL string, auth *auth.Auth, logger logger) *Handlers {
 	return &Handlers{
 		service: s,
 		baseURL: baseURL,
+		auth:    auth,
 		logger:  logger,
 	}
 }
 
 func (h *Handlers) HandleCreate(c *gin.Context) {
 	defer c.Request.Body.Close()
-	data, err := io.ReadAll(c.Request.Body)
+	originalURLData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error reading request body")
 		return
 	}
 
-	if len(data) == 0 {
+	if len(originalURLData) == 0 {
 		c.String(http.StatusBadRequest, "url shouldn't be empty")
 		return
 	}
 
-	originalHost := string(data)
-	statusCode := http.StatusCreated
-	shortenURLObject, err := h.service.Create(originalHost)
+	originalURL := string(originalURLData)
 
+	userID, err := h.getUserIDFromJWTToken(c)
 	if err != nil {
-		switch {
-		default:
-			c.String(http.StatusInternalServerError, "error creating shorten url")
-			return
-		case errors.Is(err, services.ErrEntityAlreadyExist):
-			statusCode = http.StatusConflict
-		}
+		h.logger.Warn(err.Error())
+	}
+
+	statusCode := http.StatusCreated
+	shortenURLObject, err := h.service.Create(originalURL, userID)
+
+	if errors.Is(err, services.ErrEntityAlreadyExist) {
+		statusCode = http.StatusConflict
+	} else if err != nil {
+		c.String(http.StatusInternalServerError, "error creating shorten url")
+		return
 	}
 
 	shortenURL := fmt.Sprintf("%s/%s", h.baseURL, shortenURLObject.ID)
@@ -87,7 +95,9 @@ func (h *Handlers) HandleRedirect(c *gin.Context) {
 		c.String(http.StatusNotFound, "id not found")
 		return
 	}
-
+	if url.DeletedFlag {
+		c.String(http.StatusGone, "requested url was deleted")
+	}
 	c.Redirect(http.StatusTemporaryRedirect, services.EnsureURLScheme(url.OriginalURL))
 }
 
@@ -107,16 +117,21 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 		return
 	}
 
-	statusCode := http.StatusCreated
-	shortenURLObject, err := h.service.Create(reqData.URL)
+	userID, err := h.getUserIDFromJWTToken(c)
 	if err != nil {
-		switch {
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
-			return
-		case errors.Is(err, services.ErrEntityAlreadyExist):
-			statusCode = http.StatusConflict
-		}
+		h.logger.Warn(err.Error())
+	}
+
+	shortenURLObject, err := h.service.Create(reqData.URL, userID)
+	if errors.Is(err, services.ErrEntityAlreadyExist) {
+		h.logger.Error(err.Error())
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+	if err != nil {
+		h.logger.Error(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	response := struct {
@@ -124,7 +139,7 @@ func (h *Handlers) HandleShorten(c *gin.Context) {
 	}{
 		Result: h.baseURL + "/" + shortenURLObject.ID,
 	}
-	c.JSON(statusCode, response)
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h *Handlers) HandleShortenBatch(c *gin.Context) {
@@ -140,12 +155,17 @@ func (h *Handlers) HandleShortenBatch(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
+	userID, err := h.getUserIDFromJWTToken(c)
+	if err != nil {
+		h.logger.Warn(err.Error())
+	}
+
 	urlsToShort := make([]string, 0)
 	for _, u := range request {
 		urlsToShort = append(urlsToShort, u.OriginalURL)
 	}
 
-	ids, err := h.service.CreateBatch(urlsToShort)
+	ids, err := h.service.CreateBatch(urlsToShort, userID)
 	if err != nil {
 		h.logger.Error("error creating batch", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
@@ -172,4 +192,87 @@ func (h *Handlers) HandlePing(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, "connected to database")
+}
+
+type ShowAllUsersURLsDTO struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+func (h *Handlers) newShowAllUsersURLsDTO(su models.ShortURL) ShowAllUsersURLsDTO {
+	return ShowAllUsersURLsDTO{
+		ShortURL:    h.baseURL + "/" + su.ID,
+		OriginalURL: su.OriginalURL,
+	}
+}
+
+func (h *Handlers) HandleShowAllUsersURLs(c *gin.Context) {
+	userID, err := h.getUserIDFromJWTToken(c)
+	if err != nil {
+		c.JSON(http.StatusNoContent, "empty")
+		return
+	}
+
+	userURLs, err := h.service.GetAllUsersURLs(userID)
+	if len(userURLs) == 0 {
+		c.JSON(http.StatusNoContent, "empty")
+		return
+	}
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	res := make([]ShowAllUsersURLsDTO, len(userURLs))
+	for i, u := range userURLs {
+		dto := h.newShowAllUsersURLsDTO(u)
+		res[i] = dto
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+func (h *Handlers) getUserIDFromJWTToken(c *gin.Context) (string, error) {
+	var jwtToken string
+	var err error
+	// Пытаемся получить jwtToken из контекста
+	if tempToken, exists := c.Get("jwt_token"); exists {
+		jwtToken = tempToken.(string)
+	} else {
+		// Если токена нет в контексте, пытаемся получить его из куки
+		jwtToken, err = c.Cookie("jwt_token")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	userID := h.auth.ValidateToken(jwtToken)
+	if userID == "" {
+		return "", fmt.Errorf("invalid userID")
+	}
+
+	return userID, nil
+}
+
+func (h *Handlers) HandleDeleteURL(c *gin.Context) {
+	userID, err := h.getUserIDFromJWTToken(c)
+	if err != nil {
+		h.logger.Error("error parsing user_id", err.Error())
+		c.JSON(http.StatusUnauthorized, "not authorized")
+		return
+	}
+
+	var ids []string
+	if err := json.NewDecoder(c.Request.Body).Decode(&ids); err != nil {
+		h.logger.Error("error unmarshalling body", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you should provide correct data"})
+		return
+	}
+	defer c.Request.Body.Close()
+
+	h.logger.Debug(fmt.Sprintf("request from user_id: %s, to delete urls: %s", userID, ids))
+
+	h.service.Delete(ids, userID)
+
+	c.JSON(http.StatusAccepted, "accepted")
 }

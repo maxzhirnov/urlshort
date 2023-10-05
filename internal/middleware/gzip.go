@@ -29,7 +29,7 @@ func (g *gzipResponseWriter) Write(data []byte) (int, error) {
 	return g.writer.Write(data)
 }
 
-func Gzip(logger logger, gzipWriter *gzip.Writer) gin.HandlerFunc {
+func GzipMiddleware(gzipWriter *gzip.Writer, logger logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Decoding
 		if c.GetHeader("Content-Encoding") == "gzip" {

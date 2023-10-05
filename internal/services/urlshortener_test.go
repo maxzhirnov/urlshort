@@ -15,7 +15,23 @@ type mockStorage struct {
 	GetFunc  func(id string) (models.ShortURL, error)
 }
 
-func (ms *mockStorage) InsertMany(ctx context.Context, urls []models.ShortURL) error {
+func (ms *mockStorage) InsertMany(ctx context.Context, urls []models.ShortURL) ([]models.ShortURL, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ms *mockStorage) GetURLByID(ctx context.Context, id string) (models.ShortURL, error) {
+	return models.ShortURL{
+		ID:          id,
+		OriginalURL: "example.com",
+	}, nil
+}
+
+func (ms *mockStorage) TagURLsDeleted(urls []models.Deletion) error {
+	return nil
+}
+
+func (ms *mockStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -47,21 +63,24 @@ func Test_Create(t *testing.T) {
 	}
 
 	tests := []struct {
-		name  string
-		input string
-		want  want
+		name string
+		url  string
+		uuid string
+		want want
 	}{
 		{
-			name:  "happy path",
-			input: "google.com",
+			name: "happy path",
+			url:  "google.com",
+			uuid: "123456",
 			want: want{
 				id:  "12345678",
 				err: nil,
 			},
 		},
 		{
-			name:  "empty url",
-			input: "",
+			name: "empty url",
+			url:  "",
+			uuid: "123456",
 			want: want{
 				id:  "",
 				err: errors.New("originalURL shouldn't be empty string"),
@@ -77,7 +96,7 @@ func Test_Create(t *testing.T) {
 				},
 			}
 			app := NewURLShortener(storage, NewRandIDGenerator(8), nil)
-			actualURL, actualErr := app.Create(tt.input)
+			actualURL, actualErr := app.Create(tt.url, tt.uuid)
 			assert.Equal(t, len(tt.want.id), len(actualURL.ID))
 			assert.Equal(t, tt.want.err, actualErr)
 		})
@@ -107,7 +126,7 @@ func Test_Get(t *testing.T) {
 			},
 		},
 		{
-			name:  "empty input case",
+			name:  "empty url case",
 			input: "",
 			want: want{
 				url: models.ShortURL{},

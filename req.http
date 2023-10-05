@@ -4,7 +4,7 @@ Content-Type: text/plain
 ya.ru
 
 ###
-GET http://localhost:8080/UsI09awt
+GET http://localhost:8080/Mg2cC0IC
 
 ### ping
 GET http://localhost:8080/ping
@@ -15,7 +15,7 @@ Content-Type: application/json
 Accept-Encoding: br,deflate,gzip,x-gzip
 
 {
-  "url": "reddit.com"
+  "url": "xx.com"
 }
 
 
@@ -26,11 +26,20 @@ Accept-Encoding: br,deflate,gzip,x-gzip
 
 [
   {
-    "correlation_id": "123456",
-    "original_url": "ya.ru"
+    "correlation_id": "345",
+    "original_url": "me.com"
   },
   {
     "correlation_id": "234567",
     "original_url": "google.com"
   }
 ]
+
+### api/user/urls
+GET http://localhost:8080/api/user/urls
+
+### api/uers/urls DELETE
+DELETE http://localhost:8081/api/user/urls
+Content-Type: application/json
+
+["xj2PaYL2", "XLcZMY1C", "RsMxs6Pw"]

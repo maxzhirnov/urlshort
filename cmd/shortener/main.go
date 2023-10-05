@@ -4,12 +4,14 @@ import (
 	"compress/gzip"
 	"context"
 	"log"
-	"time"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 
+	"github.com/maxzhirnov/urlshort/internal/auth"
 	"github.com/maxzhirnov/urlshort/internal/configs"
 	"github.com/maxzhirnov/urlshort/internal/handlers"
 	"github.com/maxzhirnov/urlshort/internal/logging"
@@ -19,6 +21,9 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println(".env file parsing failed")
 	}
@@ -41,25 +46,27 @@ func main() {
 	}
 	defer storage.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := storage.Bootstrap(ctx); err != nil {
+	if err := storage.Bootstrap(); err != nil {
 		logger.Fatal(err.Error())
 	}
 
 	repo := repositories.NewRepository(logger, storage)
 	idGenerator := services.NewRandIDGenerator(8)
 	service := services.NewURLShortener(repo, idGenerator, logger)
-	handler := handlers.NewHandlers(service, config.BaseURL(), logger)
+	authService := auth.NewAuth()
+	handler := handlers.NewHandlers(service, config.BaseURL(), authService, logger)
+
+	go service.ProcessLinkDeletion(ctx)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
-	r.Use(middleware.Logging(logger))
+	r.Use(middleware.LoggingMiddleware(logger))
 	gzipWriter, err := gzip.NewWriterLevel(nil, gzip.BestSpeed)
 	if err != nil {
 		log.Fatal(err)
 	}
-	r.Use(middleware.Gzip(logger, gzipWriter))
+	r.Use(middleware.GzipMiddleware(gzipWriter, logger))
+	r.Use(middleware.TokenIssuerMiddleware(authService, logger))
 
 	r.GET("/:ID", handler.HandleRedirect)
 	r.POST("/", handler.HandleCreate)
@@ -68,6 +75,8 @@ func main() {
 	api := r.Group("/api")
 	api.POST("/shorten", handler.HandleShorten)
 	api.POST("/shorten/batch", handler.HandleShortenBatch)
+	api.GET("/user/urls", handler.HandleShowAllUsersURLs)
+	api.DELETE("/user/urls", handler.HandleDeleteURL)
 
 	if err := r.Run(config.ServerAddr()); err != nil {
 		logger.Fatal("Couldn't start server",
