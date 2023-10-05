@@ -4,10 +4,8 @@ import (
 	"compress/gzip"
 	"context"
 	"log"
-	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -23,6 +21,9 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println(".env file parsing failed")
 	}
@@ -45,9 +46,7 @@ func main() {
 	}
 	defer storage.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := storage.Bootstrap(ctx); err != nil {
+	if err := storage.Bootstrap(); err != nil {
 		logger.Fatal(err.Error())
 	}
 
@@ -57,9 +56,7 @@ func main() {
 	authService := auth.NewAuth()
 	handler := handlers.NewHandlers(service, config.BaseURL(), authService, logger)
 
-	ctx2, cancel2 := context.WithCancel(context.Background())
-	go waitForShutdown(cancel2, service)
-	go service.ProcessLinkDeletion(ctx2)
+	go service.ProcessLinkDeletion(ctx)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -86,13 +83,4 @@ func main() {
 			"error", err,
 		)
 	}
-}
-
-func waitForShutdown(cancel context.CancelFunc, urlShortener *services.URLShortener) {
-	stopChan := make(chan os.Signal, 1)
-	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
-	<-stopChan
-
-	urlShortener.Stop(cancel)
-	os.Exit(0)
 }

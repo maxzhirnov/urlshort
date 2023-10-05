@@ -28,7 +28,7 @@ type Storage interface {
 	GetURLByOriginalURL(ctx context.Context, url string) (models.ShortURL, bool)
 	GetURLsByUUID(ctx context.Context, uuid string) ([]models.ShortURL, error)
 	TagURLsDeleted(context.Context, []models.Deletion) error
-	Bootstrap(context.Context) error
+	Bootstrap() error
 	Close() error
 	Ping() error
 }

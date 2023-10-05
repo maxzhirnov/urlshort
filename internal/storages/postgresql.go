@@ -161,7 +161,7 @@ func (s Postgresql) GetURLsByUUID(ctx context.Context, uuid string) ([]models.Sh
 	return shortURLs, nil
 }
 
-func (s Postgresql) Bootstrap(ctx context.Context) error {
+func (s Postgresql) Bootstrap() error {
 	// Создаем таблицу short_urls
 	if err := s.initTables(); err != nil {
 		return err
@@ -184,7 +184,7 @@ func (s Postgresql) Close() error {
 }
 
 func (s Postgresql) initTables() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if _, err := s.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS short_urls (
 									  id varchar(20) NOT NULL,

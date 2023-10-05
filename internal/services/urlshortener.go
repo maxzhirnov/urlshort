@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"errors"
-	"sync"
+	"os"
 	"time"
 
 	"github.com/maxzhirnov/urlshort/internal/models"
@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	deletionInterval = 5 * time.Second
+	deletionInterval = 180 * time.Second
 	deleteChanCap    = 512
 )
 
@@ -46,16 +46,17 @@ type URLShortener struct {
 	logger      logger
 
 	// Канал для удаления URL-ов
-	deleteChan chan models.Deletion
-	wg         sync.WaitGroup
+	deleteChan     chan models.Deletion
+	deletionsStack []models.Deletion
 }
 
 func NewURLShortener(repo repository, idGenerator idGenerator, logger logger) *URLShortener {
 	return &URLShortener{
-		Repo:        repo,
-		IDGenerator: idGenerator,
-		logger:      logger,
-		deleteChan:  make(chan models.Deletion, deleteChanCap),
+		Repo:           repo,
+		IDGenerator:    idGenerator,
+		logger:         logger,
+		deleteChan:     make(chan models.Deletion, deleteChanCap),
+		deletionsStack: make([]models.Deletion, 0, deleteChanCap),
 	}
 }
 
@@ -141,50 +142,46 @@ func (us *URLShortener) Delete(ids []string, userID string) {
 }
 
 func (us *URLShortener) ProcessLinkDeletion(ctx context.Context) {
-	// wg для gracefull shutdown
-	us.wg.Add(1)
-	defer us.wg.Done()
-
 	ticker := time.NewTicker(deletionInterval)
-	deletions := make([]models.Deletion, 0, deleteChanCap)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case d := <-us.deleteChan:
-			deletions = append(deletions, d)
+			us.logger.Debug("adding deletion to delete chan")
+			us.deletionsStack = append(us.deletionsStack, d)
 		case <-ticker.C:
-			if len(deletions) == 0 {
+			if len(us.deletionsStack) == 0 {
 				continue
 			}
-			err := us.Repo.TagURLsDeleted(deletions)
+			err := us.Repo.TagURLsDeleted(us.deletionsStack)
 			if err != nil {
 				us.logger.Error(err.Error())
 				continue
 			}
-			deletions = deletions[0:]
+			us.deletionsStack = us.deletionsStack[0:]
 		case <-ctx.Done():
-			// Удаляем все оставшиеся в канале deletions
-			for len(us.deleteChan) > 0 {
-				d := <-us.deleteChan
-				deletions = append(deletions, d)
-			}
-			if len(deletions) > 0 {
-				err := us.Repo.TagURLsDeleted(deletions)
-				if err != nil {
-					us.logger.Error(err.Error())
-				}
-			}
-			// и закрываем канал
-			close(us.deleteChan)
-			return
+			us.Stop()
 		}
 	}
 }
 
-func (us *URLShortener) Stop(cancel context.CancelFunc) {
-	cancel()
-	us.wg.Wait()
+func (us *URLShortener) Stop() {
+	us.logger.Debug("Shutting down...")
+	// Удаляем все оставшиеся в канале deletions
+	for len(us.deleteChan) > 0 {
+		d := <-us.deleteChan
+		us.deletionsStack = append(us.deletionsStack, d)
+	}
+	if len(us.deletionsStack) > 0 {
+		err := us.Repo.TagURLsDeleted(us.deletionsStack)
+		if err != nil {
+			us.logger.Error(err.Error())
+		}
+	}
+	// и закрываем канал
+	close(us.deleteChan)
+	os.Exit(0)
 }
 
 func (us *URLShortener) Ping() error {

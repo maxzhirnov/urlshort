@@ -68,7 +68,7 @@ func (s *MemoryStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]model
 	return nil, nil
 }
 
-func (s *MemoryStorage) Bootstrap(ctx context.Context) error {
+func (s *MemoryStorage) Bootstrap() error {
 	return nil
 }
 

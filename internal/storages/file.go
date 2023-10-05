@@ -103,7 +103,7 @@ func (s *FileStorage) TagURLsDeleted(ctx context.Context, urlsToDelete []models.
 	return nil
 }
 
-func (s *FileStorage) Bootstrap(ctx context.Context) error {
+func (s *FileStorage) Bootstrap() error {
 	return nil
 }
 

@@ -39,7 +39,7 @@ Accept-Encoding: br,deflate,gzip,x-gzip
 GET http://localhost:8080/api/user/urls
 
 ### api/uers/urls DELETE
-DELETE http://localhost:8080/api/user/urls
+DELETE http://localhost:8081/api/user/urls
 Content-Type: application/json
 
 ["xj2PaYL2", "XLcZMY1C", "RsMxs6Pw"]

@@ -54,7 +54,7 @@ func (s *CombinedStorage) GetURLsByUUID(ctx context.Context, uuid string) ([]mod
 	return s.safeMap.GetURLsByUUID(ctx, uuid)
 }
 
-func (s *CombinedStorage) Bootstrap(ctx context.Context) error {
+func (s *CombinedStorage) Bootstrap() error {
 	return s.safeFile.initializeData(s.safeMap)
 }
 
